@@ -1,0 +1,240 @@
+package dev.li.widget;
+
+import android.app.*;
+import android.appwidget.*;
+import android.content.*;
+import android.content.res.Configuration;
+import android.os.*;
+import android.util.SizeF;
+import android.view.*;
+import android.widget.RemoteViews;
+import java.util.*;
+
+public class BridgeService extends Service {
+  private static RemoteViews sourceViews;
+  private static View sourceSnapshot;
+  private static Freshness freshness = new Freshness("", 0);
+  private static volatile BridgeService instance;
+  private AppWidgetHost host;
+  private String notificationLanguage = "";
+  private final Handler handler = new Handler(Looper.getMainLooper());
+  private int attachedId = -1;
+  private final Runnable refresh = () -> refreshSnapshot();
+  private final Runnable minute =
+      new Runnable() {
+        public void run() {
+          if (getSystemService(PowerManager.class).isInteractive()) refreshSnapshot();
+          handler.postDelayed(this, 60000);
+        }
+      };
+  private final BroadcastReceiver clock =
+      new BroadcastReceiver() {
+        public void onReceive(Context c, Intent i) {
+          handler.removeCallbacks(refresh);
+          handler.post(refresh);
+        }
+      };
+
+  @Override
+  public void onCreate() {
+    super.onCreate();
+    updateNotification();
+    host =
+        new AppWidgetHost(this, State.HOST) {
+          @Override
+          protected AppWidgetHostView onCreateView(Context c, int id, AppWidgetProviderInfo info) {
+            return new AppWidgetHostView(c) {
+              @Override
+              public void updateAppWidget(RemoteViews rv) {
+                super.updateAppWidget(rv);
+                handler.removeCallbacks(refresh);
+                handler.postDelayed(refresh, 100);
+              }
+            };
+          }
+        };
+    instance = this;
+    IntentFilter clockFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+    clockFilter.addAction(Intent.ACTION_TIME_CHANGED);
+    clockFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+    if (Build.VERSION.SDK_INT >= 33)
+      registerReceiver(clock, clockFilter, Context.RECEIVER_NOT_EXPORTED);
+    else registerReceiver(clock, clockFilter);
+    handler.postDelayed(minute, 60000);
+  }
+
+  private void updateNotification() {
+    String language = Language.code(this);
+    if (language.equals(notificationLanguage)) return;
+    NotificationManager n = getSystemService(NotificationManager.class);
+    NotificationChannel channel =
+        new NotificationChannel(
+            "sync",
+            Language.text(this, R.string.channel_updates),
+            NotificationManager.IMPORTANCE_LOW);
+    channel.setShowBadge(false);
+    n.createNotificationChannel(channel);
+    PendingIntent open =
+        PendingIntent.getActivity(
+            this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+    startForeground(
+        71,
+        new Notification.Builder(this, "sync")
+            .setSmallIcon(R.drawable.widget_mark)
+            .setContentTitle(Language.text(this, R.string.notification_active))
+            .setContentText(Language.text(this, R.string.notification_connected))
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .build());
+    notificationLanguage = language;
+  }
+
+  static boolean refreshIfRunning() {
+    BridgeService s = instance;
+    if (s == null || s.attachedId != State.sourceId(s) || s.attachedId == -1) return false;
+    s.handler.removeCallbacks(s.refresh);
+    s.handler.post(s.refresh);
+    return true;
+  }
+
+  @Override
+  public int onStartCommand(Intent i, int flags, int startId) {
+    int id = State.sourceId(this);
+    AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(id);
+    if (!State.validSource(info)) {
+      sourceViews = null;
+      sourceSnapshot = null;
+      LiWidgetProvider.showEmpty(
+          this,
+          Language.text(this, R.string.connect_title),
+          Language.text(this, R.string.restore_connection));
+      stopSelf();
+      return START_NOT_STICKY;
+    }
+    if (attachedId != id) {
+      host.stopListening();
+      host.createView(this, id, info);
+      attachedId = id;
+      host.startListening();
+    }
+    handler.removeCallbacks(refresh);
+    handler.post(refresh);
+    return START_STICKY;
+  }
+
+  private void refreshSnapshot() {
+    updateNotification();
+    if (!State.connected(this)) return;
+    try {
+      // A non-listening host asks the system for its complete cached RemoteViews.
+      // This keeps original PendingIntents intact after partial source updates.
+      final CaptureView[] captured = new CaptureView[1];
+      AppWidgetHost snapshot =
+          new AppWidgetHost(this, State.HOST) {
+            @Override
+            protected AppWidgetHostView onCreateView(
+                Context c, int id, AppWidgetProviderInfo info) {
+              captured[0] = new CaptureView(c);
+              return captured[0];
+            }
+          };
+      snapshot.createView(
+          this,
+          State.sourceId(this),
+          AppWidgetManager.getInstance(this).getAppWidgetInfo(State.sourceId(this)));
+      sourceViews = captured[0] == null ? null : captured[0].remote;
+      sourceSnapshot = captured[0];
+      if (sourceViews != null)
+        freshness =
+            Freshness.observe(
+                this,
+                Appearance.sourceText(this, sourceSnapshot, "widget_update_time"),
+                System.currentTimeMillis());
+      AppWidgetManager manager = AppWidgetManager.getInstance(this);
+      for (int widget : State.ownIds(this))
+        manager.updateAppWidget(widget, forWidget(this, widget));
+      sendBroadcast(new Intent(State.UPDATE).setPackage(getPackageName()));
+    } catch (Exception e) {
+      sourceViews = null;
+      sourceSnapshot = null;
+      LiWidgetProvider.showEmpty(
+          this,
+          Language.text(this, R.string.widget_unavailable),
+          Language.text(this, R.string.reconnect_source));
+      sendBroadcast(new Intent(State.UPDATE).setPackage(getPackageName()));
+    }
+  }
+
+  static RemoteViews preview(Context c, int id, int width, int height) {
+    if (sourceViews == null || sourceSnapshot == null)
+      return LiWidgetProvider.empty(
+          c,
+          id,
+          State.connected(c)
+              ? Language.text(c, R.string.loading_source)
+              : Language.text(c, R.string.connect_title),
+          State.connected(c)
+              ? Language.text(c, R.string.open_and_sign_in)
+              : Language.text(c, R.string.connect_for_data),
+          height);
+    try {
+      return Appearance.render(
+          c, sourceViews, sourceSnapshot, WidgetStyle.read(c, id), width, height, freshness);
+    } catch (Exception e) {
+      return LiWidgetProvider.empty(
+          c,
+          id,
+          Language.text(c, R.string.widget_unavailable),
+          Language.text(c, R.string.reconnect_source),
+          height);
+    }
+  }
+
+  static RemoteViews forWidget(Context c, int id) {
+    Map<SizeF, RemoteViews> views = new LinkedHashMap<>();
+    for (SizeF size : WidgetStyle.sizes(AppWidgetManager.getInstance(c).getAppWidgetOptions(id)))
+      views.put(
+          size,
+          preview(c, id, (int) Math.floor(size.getWidth()), (int) Math.floor(size.getHeight())));
+    return views.size() == 1 ? views.values().iterator().next() : new RemoteViews(views);
+  }
+
+  static final class CaptureView extends AppWidgetHostView {
+    RemoteViews remote;
+
+    CaptureView(Context c) {
+      super(c);
+    }
+
+    @Override
+    public void updateAppWidget(RemoteViews r) {
+      super.updateAppWidget(r);
+      remote = r == null ? null : r.clone();
+    }
+  }
+
+  @Override
+  public void onConfigurationChanged(Configuration c) {
+    super.onConfigurationChanged(c);
+    handler.removeCallbacks(refresh);
+    handler.post(refresh);
+  }
+
+  @Override
+  public void onDestroy() {
+    instance = null;
+    handler.removeCallbacksAndMessages(null);
+    unregisterReceiver(clock);
+    if (host != null) host.stopListening();
+    sourceViews = null;
+    sourceSnapshot = null;
+    super.onDestroy();
+  }
+
+  @Override
+  public IBinder onBind(Intent i) {
+    return null;
+  }
+}
