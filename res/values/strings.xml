@@ -202,4 +202,5 @@
     <string name="electric_short">Electric</string>
     <string name="electric_tiny">EV</string>
     <string name="fuel_short">Fuel</string>
+    <string name="metric_refresh_hint">Tap the widget to request updated readings from Li Auto. Appearance can be changed here or in the launcher widget editor.</string>
 </resources>

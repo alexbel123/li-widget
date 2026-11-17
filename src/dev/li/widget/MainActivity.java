@@ -453,6 +453,7 @@ public class MainActivity extends Activity {
         card.addView(hint);
       }
     }
+    if (style.format.standard() || style.format.favorites())
     choice(card, t(R.string.editor_labels), new String[] {t(R.string.font_normal), t(R.string.font_large)},
         new String[] {"normal", "large"}, style.font, value -> {
           style.font = value;
@@ -495,6 +496,8 @@ public class MainActivity extends Activity {
 
   private void dataSettings() {
     LinearLayout card = ui.card();
+    if (!style.format.standard() && !style.format.favorites())
+      settingLine(card, t(R.string.desc_refresh), t(R.string.metric_refresh_hint), null);
     if (style.format.favorites()) settingLine(card, t(R.string.format_controls_only), t(R.string.favorite_source_hint), null);
     if (!style.format.favorites() && style.format != WidgetFormat.MINIMAL)
       toggle(card, t(R.string.show_time), style.showTime, value -> {

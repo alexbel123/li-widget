@@ -82,7 +82,8 @@ final class VariantAppearance {
     Reading reading = read(local, source, snapshot);
     if (style.format.favorites())
       return favorites(local, original, snapshot, style, width, height, reading.message);
-    return metrics(local, style, width, height, freshness, chargeChanged, reading, true);
+    RemoteViews refresh = Appearance.refreshOverlay(local, original, snapshot, style, width, height);
+    return metrics(local, style, width, height, freshness, chargeChanged, reading, true, refresh);
   }
 
   static RemoteViews sample(Context context, WidgetStyle style, int width, int height) {
@@ -93,7 +94,7 @@ final class VariantAppearance {
     sample.fuel = "742 " + Language.text(local, R.string.sample_km);
     sample.percent = 76;
     sample.known = true;
-    return metrics(local, style, width, height, new Freshness("", 0), false, sample, false);
+    return metrics(local, style, width, height, new Freshness("", 0), false, sample, false, null);
   }
 
   private static RemoteViews base(Context c, WidgetStyle style, int layout, int height, WidgetColors colors) {
@@ -133,7 +134,7 @@ final class VariantAppearance {
   }
 
   private static RemoteViews metrics(Context c, WidgetStyle style, int width, int height,
-      Freshness freshness, boolean changed, Reading reading, boolean interactive) {
+      Freshness freshness, boolean changed, Reading reading, boolean interactive, RemoteViews refresh) {
     boolean minimal = style.format == WidgetFormat.MINIMAL;
     boolean charging = style.format == WidgetFormat.CHARGING;
     float fontScale = c.getResources().getConfiguration().fontScale;
@@ -146,23 +147,37 @@ final class VariantAppearance {
     String status = !reading.message.isEmpty() ? reading.message : freshness.text(c, now, style.staleMinutes);
     int warning = !reading.message.isEmpty() || stale ? colors.warning : colors.secondary;
     int pad = minimal ? (width < 140 ? 6 : 10) : width < 150 || height < 140 ? 8 : 12;
-    views.setViewPadding(R.id.variant_root, dp(c, pad), dp(c, Math.min(pad, height / 8)), dp(c, pad), dp(c, Math.min(pad, height / 8)));
+    int verticalPad = Math.min(pad, height / 8);
+    views.setViewPadding(R.id.metrics_body, dp(c, pad), dp(c, verticalPad), dp(c, pad), dp(c, verticalPad));
+    views.removeAllViews(R.id.metric_refresh_slot);
+    if (refresh != null) views.addView(R.id.metric_refresh_slot, refresh);
     if (interactive) {
       PendingIntent configure = PendingIntent.getActivity(c, style.widgetId,
           new Intent(c, MainActivity.class).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, style.widgetId),
           PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-      views.setOnClickPendingIntent(minimal || tightRange ? R.id.variant_root : R.id.variant_settings, configure);
+      if (!minimal && !tightRange) views.setOnClickPendingIntent(R.id.variant_settings, configure);
+      else if (refresh == null) views.setOnClickPendingIntent(R.id.variant_root, configure);
     }
     if (!minimal) {
       views.setViewVisibility(R.id.variant_header, tightRange ? View.GONE : View.VISIBLE);
+      views.setViewVisibility(R.id.variant_settings, tightRange ? View.GONE : View.VISIBLE);
       views.setTextViewText(R.id.variant_name, reading.name.isEmpty() ? Language.text(c, R.string.app_name) : reading.name);
       views.setTextColor(R.id.variant_name, colors.primary);
       views.setInt(R.id.variant_settings, "setColorFilter", colors.icon);
-      views.setViewLayoutHeight(R.id.variant_header, height < 140 ? 24 : 32, TypedValue.COMPLEX_UNIT_DIP);
+      int headerHeight = height < 140 ? 24 : 32;
+      views.setViewLayoutHeight(R.id.variant_header, headerHeight, TypedValue.COMPLEX_UNIT_DIP);
+      // The independent overlay expands the hit target without stealing height from the readings.
+      int buttonTop = Math.max(0, verticalPad + (headerHeight - 48) / 2);
+      int iconTop = verticalPad + headerHeight / 2 - buttonTop - 9;
+      views.setViewLayoutMargin(R.id.variant_settings, RemoteViews.MARGIN_TOP, buttonTop, TypedValue.COMPLEX_UNIT_DIP);
+      views.setViewLayoutMargin(R.id.variant_settings, RemoteViews.MARGIN_RIGHT, Math.max(0, pad - 8), TypedValue.COMPLEX_UNIT_DIP);
+      views.setViewPadding(R.id.variant_settings, dp(c, 15), dp(c, iconTop), dp(c, 15), dp(c, 30 - iconTop));
       views.setTextViewTextSize(R.id.variant_name, TypedValue.COMPLEX_UNIT_SP, height < 140 ? 12 : 15);
       views.setTextViewText(R.id.variant_status, status);
       views.setTextColor(R.id.variant_status, warning);
-      views.setViewVisibility(R.id.variant_status, !tightRange && (style.showTime || !reading.message.isEmpty()) ? View.VISIBLE : View.GONE);
+      views.setViewVisibility(R.id.variant_footer, !tightRange && (style.showTime || !reading.message.isEmpty()) ? View.VISIBLE : View.GONE);
+      views.setViewVisibility(R.id.variant_refresh_mark, refresh == null ? View.GONE : View.VISIBLE);
+      views.setInt(R.id.variant_refresh_mark, "setColorFilter", warning);
       views.setTextViewTextSize(R.id.variant_status, TypedValue.COMPLEX_UNIT_SP, height < 140 ? 9 : 10);
     }
     if (charging) {

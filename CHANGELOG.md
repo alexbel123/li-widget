@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0 · build 18 — 2026-11-17
+
+Android `versionName` remains **1.0**; `versionCode` is **18**. Release tag: `v1.0-build18`.
+
+- Fixed disappearing electricity/fuel symbols in the compact overview: dedicated ImageViews survive RemoteViews parceling. Original header click handlers remain intact beneath the non-interactive visual layer.
+- Range and Charging settings have independent **48×48 dp** touch targets, including at minimum height, while preserving the small icon and reading layout.
+- Minimal, Range and Charging support tap-to-refresh through the original source PendingIntent. Disabled or unavailable source actions are respected. No new network client or vehicle command is introduced.
+- Removed the button-label size setting from the three formats without a control panel. System font scaling remains supported.
+- Updated the native screenshot gallery and interaction instructions. Charging-time handling is unchanged.
+- Passed **82 native rendering checks**, attached-window touch tests, seven-provider binding, original callback retention, RU/EN, light/dark, minimum sizes with larger system text, and settings visibility for every format.
+
+[Verification](docs/VERIFICATION.md) · [Widget behavior](docs/WIDGETS.md).
+
 ## 1.0 · build 17 — 2026-11-17
 
 Android `versionName` remains **1.0**; `versionCode` is **17**. Release tag: `v1.0-build17`. This update includes the work since public build 9.

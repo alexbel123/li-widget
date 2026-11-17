@@ -202,4 +202,5 @@
     <string name="electric_short">Электро</string>
     <string name="electric_tiny">Эл.</string>
     <string name="fuel_short">Бензин</string>
+    <string name="metric_refresh_hint">Нажмите на виджет, чтобы обновить показания через Li Auto. Оформление меняется здесь или в редакторе виджетов рабочего стола.</string>
 </resources>

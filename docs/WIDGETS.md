@@ -22,6 +22,14 @@ In Li Widget, choose New widget → Style → Widget type → Add widget, or use
 
 Размер в ячейках — ориентир для лаунчера: физическая сетка и системные отступы зависят от устройства. У маленьких форматов собственные ограничения размера; они не наследуют минимум универсального виджета. [Android sizing documentation](https://developer.android.com/develop/ui/views/appwidgets/layouts).
 
+## Нажатия / Taps
+
+В сборке 18 нажатие на карточку «Минимальный», «Запас хода» или «Зарядка» вызывает исходный обработчик обновления Li Auto. В строке времени рядом с отметкой обновления показывается небольшая круговая стрелка. Она не означает, что автомобиль уже ответил. Отключённое или недоступное действие источника не заменяется собственной командой.
+
+Значок настроек у «Запаса хода» и «Зарядки» имеет область нажатия 48×48 dp и открывает оформление отдельно. В минимальном формате и тесной компоновке «Запаса хода» настройки доступны через приложение или системное редактирование виджета. Образец в редакторе не выполняет действия.
+
+In build 18, tap Minimal, Range or Charging to invoke the original Li Auto refresh handler. A small refresh arrow accompanies the update-age line; it does not imply that the vehicle has already responded. Disabled or missing source actions remain unavailable. The Range and Charging settings icon has a separate 48×48 dp target. For Minimal and tightly resized Range, use the app or the launcher widget editor to configure appearance. In-app previews do not dispatch actions.
+
 ## Данные и кнопки / Data and controls
 
 Все значения берутся из текущего штатного виджета Li Auto. Если при зарядке исходное поле запаса хода заменено процентом, вместо недоступного запаса хода отображается «—». Скрытые значения не подставляются из старого снимка. Получение и перевод времени зарядки используют прежний механизм; отдельного расчёта времени нет.
@@ -34,7 +42,7 @@ All readings come from the current original widget. Unavailable or hidden range 
 
 Sample values are confined to the unconnected editor preview. An unconnected home-screen widget shows a connection prompt.
 
-## Снимки сборки 17 / Build 17 screenshots
+## Снимки сборки 18 / Build 18 screenshots
 
 Настоящие RemoteViews установленного APK, отрисованные в эмуляторе Android с синтетическими показаниями. Это не изображения-концепции. Исходные значки и доступность действий при подключении определяет Li Auto.
 
@@ -51,6 +59,6 @@ These are native RemoteViews rendered from the installed APK on an Android emula
 <tr><td>Зарядка / Charging · 4×2</td><td><img src="images/charging-light-ru.png" width="320" alt="Зарядка / Charging · 4×2, light"></td><td><img src="images/charging-dim-ru.png" width="320" alt="Зарядка / Charging · 4×2, dark"></td></tr>
 </table>
 
-Меню типов в приложении и системный диалог добавления 2×2 / In-app format picker and Android 2×2 pin dialog:
+Меню типов и системный диалог добавления 2×2 (снимки сборки 17; состав форматов не менялся) / Format picker and Android 2×2 pin dialog (build 17 captures; the format catalog is unchanged):
 
 <p><img src="images/formats-menu.png" width="240" alt="Семь типов виджета / Seven widget formats"> <img src="images/android-add-favorites-grid.png" width="240" alt="Android: избранное 2×2 / Favorites 2×2"></p>

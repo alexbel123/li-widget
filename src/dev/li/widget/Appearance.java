@@ -5,14 +5,8 @@ import android.content.res.*;
 import android.graphics.*;
 import android.graphics.drawable.*;
 import android.text.SpannableString;
-import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.TextPaint;
-import android.text.TextUtils;
-import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.ImageSpan;
-import android.text.style.StyleSpan;
 import android.text.style.TypefaceSpan;
 import android.util.TypedValue;
 import android.view.*;
@@ -388,6 +382,33 @@ final class Appearance {
     return a.rv;
   }
 
+  /** Preserve the source refresh PendingIntent, including its disabled state, without extracting it. */
+  static RemoteViews refreshOverlay(Context c, RemoteViews original, View snapshot, WidgetStyle style,
+      int width, int height) throws Exception {
+    Appearance a = new Appearance(c, original, snapshot, style, width, height, new Freshness("", 0));
+    View refresh = snapshot.findViewById(a.id("iv_widget_refresh"));
+    if (!visible(refresh) || !refresh.hasOnClickListeners()) return null;
+    for (String hidden : new String[] {"widget_content", "widget_buttons", "re_widget_login",
+        "widget_logo", "widget_ll_name", "widget_update_time", "widget_iv_setting",
+        "card_theme_background_1", "card_theme_background_2"}) a.hidden(hidden);
+    for (String container : new String[] {"re_widget_content", "ll_widget_car", "widget_header"}) {
+      a.width(container, width);
+      a.height(container, height);
+      a.padding(container, 0, 0, 0, 0);
+      a.integer(container, "setBackgroundResource", 0);
+      a.rv.setOnClickPendingIntent(a.id(container), null);
+    }
+    for (int edge : new int[] {RemoteViews.MARGIN_LEFT, RemoteViews.MARGIN_RIGHT,
+        RemoteViews.MARGIN_TOP, RemoteViews.MARGIN_BOTTOM}) a.margin("widget_header", edge, 0);
+    a.width("iv_widget_refresh", width);
+    a.height("iv_widget_refresh", height);
+    a.padding("iv_widget_refresh", 0, 0, 0, 0);
+    a.rv.setImageViewResource(a.id("iv_widget_refresh"), 0);
+    a.rv.setBoolean(a.id("iv_widget_refresh"), "setEnabled", refresh.isEnabled());
+    a.rv.setContentDescription(a.id("iv_widget_refresh"), Language.text(a.local, R.string.desc_refresh));
+    return a.rv;
+  }
+
   private RemoteViews build(boolean newReading, boolean chargeChanged) {
     if (id("re_widget_content") == 0 || id("control_button1") == 0)
       throw new IllegalStateException("Unsupported source widget layout");
@@ -562,6 +583,7 @@ final class Appearance {
       preserveMetricColor(n);
     integer("card_theme_background_1", "setBackgroundColor", colors.outline);
     if (!style.showBattery) hidden("widget_battery_percent");
+    RemoteViews compactTitle = null;
     if (dense) {
       hidden("widget_content");
       hidden("widget_logo");
@@ -569,7 +591,7 @@ final class Appearance {
       hidden("widget_iv_back");
       margin("widget_header", RemoteViews.MARGIN_LEFT, 12);
       margin("widget_header", RemoteViews.MARGIN_RIGHT, 8);
-      compactHeader(message, footer == 0 && showStatus);
+      if (hasCar) compactTitle = compactHeader(message, footer == 0 && showStatus);
     }
     height("re_widget_login", actualHeight - 8);
     padding("re_widget_login", 18, 18, 18, 18);
@@ -602,6 +624,14 @@ final class Appearance {
         R.id.source_slot, actualHeight - 8 - (hasCar ? footer : 0), TypedValue.COMPLEX_UNIT_DIP);
     shell.removeAllViews(R.id.source_slot);
     shell.addView(R.id.source_slot, rv);
+    shell.removeAllViews(R.id.compact_header_slot);
+    shell.setViewVisibility(R.id.compact_header_slot, compactTitle == null ? View.GONE : View.VISIBLE);
+    if (compactTitle != null) {
+      shell.setViewLayoutWidth(R.id.compact_header_slot, Math.max(1, widthDp - 125), TypedValue.COMPLEX_UNIT_DIP);
+      shell.setViewLayoutMargin(R.id.compact_header_slot, RemoteViews.MARGIN_LEFT, 12, TypedValue.COMPLEX_UNIT_DIP);
+      shell.setViewLayoutMargin(R.id.compact_header_slot, RemoteViews.MARGIN_TOP, top, TypedValue.COMPLEX_UNIT_DIP);
+      shell.addView(R.id.compact_header_slot, compactTitle);
+    }
     boolean footerVisible = showStatus && footer > 0;
     shell.setViewVisibility(R.id.status_row, footerVisible ? View.VISIBLE : View.GONE);
     shell.setViewLayoutHeight(R.id.status_row, footer, TypedValue.COMPLEX_UNIT_DIP);
@@ -658,112 +688,59 @@ final class Appearance {
     return moving;
   }
 
-  private void compactHeader(String message, boolean inlineStatus) {
-    // Keep the source header's click handlers. Only its text becomes two compact lines.
-    String name = texts.getOrDefault("widget_vehicle_name", "Li Auto"),
-        battery =
-            style.showBattery && visible(snapshot.findViewById(id("widget_battery_percent")))
-                ? texts.getOrDefault("widget_battery_percent", "")
-                : "";
-    String stamp = fresh.compactText(local, System.currentTimeMillis(), style.staleMinutes);
-    String charging =
-        visible(snapshot.findViewById(id("tv_widget_charge_desc")))
-            ? texts.getOrDefault("tv_widget_charge_desc", "")
-            : "";
-    String headline =
-        (charging.isEmpty() ? name : charging) + (battery.isEmpty() ? "" : " · " + battery);
-    boolean warning =
-        !message.isEmpty() || fresh.stale(System.currentTimeMillis(), style.staleMinutes);
-    if (inlineStatus)
+  private RemoteViews compactHeader(String message, boolean inlineStatus) {
+    // The visual overlay is non-interactive. The original name/refresh/settings handlers stay underneath.
+    String name = texts.getOrDefault("widget_vehicle_name", "Li Auto");
+    String battery = style.showBattery && visible(snapshot.findViewById(id("widget_battery_percent")))
+        ? texts.getOrDefault("widget_battery_percent", "") : "";
+    String charging = visible(snapshot.findViewById(id("tv_widget_charge_desc")))
+        ? texts.getOrDefault("tv_widget_charge_desc", "") : "";
+    String headline = (charging.isEmpty() ? name : charging) + (battery.isEmpty() ? "" : " · " + battery);
+    boolean warning = !message.isEmpty() || fresh.stale(System.currentTimeMillis(), style.staleMinutes);
+    if (inlineStatus) {
+      String stamp = fresh.compactText(local, System.currentTimeMillis(), style.staleMinutes);
       headline = !message.isEmpty() ? message : warning ? stamp : headline + " · " + stamp;
-    float available = px(Math.max(1, widthDp - 125));
-    TextPaint paint = new TextPaint();
-    paint.setTypeface(Typeface.create("sans-serif", 0));
-    paint.setTextSize(sp(10));
-    SpannableStringBuilder title =
-        new SpannableStringBuilder(
-            TextUtils.ellipsize(headline, paint, available, TextUtils.TruncateAt.END));
-    title.setSpan(
-        new ForegroundColorSpan(inlineStatus && warning ? alarm : secondary),
-        0,
-        title.length(),
-        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    int batteryStart = battery.isEmpty() ? -1 : title.toString().indexOf(battery);
-    if (batteryStart >= 0)
-      title.setSpan(
-          new ForegroundColorSpan(metricColor("widget_battery_percent")),
-          batteryStart,
-          batteryStart + battery.length(),
-          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    title.append('\n');
-    List<String> metrics = new ArrayList<>();
-    for (String key : new String[] {"widget_current_mileage", "widget_total_mileage"})
-      if (visible(snapshot.findViewById(id(key)))) metrics.add(key);
-    float textSize = 18;
-    for (; ; ) {
-      paint.setTextSize(sp(textSize));
-      paint.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
-      float needed = 0;
-      for (String key : metrics) needed += paint.measureText(texts.getOrDefault(key, "")) + px(18);
-      if (needed <= available || textSize <= 9) break;
-      textSize -= .25f;
     }
-    for (String key : metrics) {
-      int start = title.length();
-      View group =
-          snapshot.findViewById(
-              id(key.equals("widget_current_mileage") ? "ll_widget_battery" : "ll_widget_oil"));
-      Drawable drawable =
-          group instanceof ViewGroup && ((ViewGroup) group).getChildAt(0) instanceof ImageView
-              ? ((ImageView) ((ViewGroup) group).getChildAt(0)).getDrawable()
-              : null;
-      if (drawable != null) {
-        Drawable glyph =
-            drawable.getConstantState() != null
-                ? drawable.getConstantState().newDrawable().mutate()
-                : drawable;
-        glyph.setBounds(0, 0, px(12), px(12));
-        title.append(' ');
-        title.setSpan(
-            new ImageSpan(glyph, ImageSpan.ALIGN_BASELINE),
-            start,
-            start + 1,
-            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      }
-      title.append(texts.getOrDefault(key, "")).append("  ");
-      title.setSpan(
-          new AbsoluteSizeSpan(Math.round(sp(textSize))),
-          start,
-          title.length(),
-          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      title.setSpan(
-          new ForegroundColorSpan(metricColor(key)),
-          start,
-          title.length(),
-          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      title.setSpan(
-          new StyleSpan(Typeface.BOLD), start, title.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    RemoteViews header = new RemoteViews(local.getPackageName(), R.layout.widget_compact_header);
+    SpannableString title = new SpannableString(headline);
+    int batteryStart = battery.isEmpty() ? -1 : headline.indexOf(battery);
+    if (batteryStart >= 0) title.setSpan(new ForegroundColorSpan(metricColor("widget_battery_percent")),
+        batteryStart, batteryStart + battery.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    header.setTextViewText(R.id.compact_name, title);
+    header.setTextColor(R.id.compact_name, inlineStatus && warning ? alarm : secondary);
+    String[] fields = {"widget_current_mileage", "widget_total_mileage"};
+    int[] cells = {R.id.compact_electric_cell, R.id.compact_fuel_cell};
+    int[] icons = {R.id.compact_electric_icon, R.id.compact_fuel_icon};
+    int[] numbers = {R.id.compact_electric, R.id.compact_fuel};
+    int count = 0;
+    for (String key : fields) if (visible(snapshot.findViewById(id(key)))) count++;
+    float available = (Math.max(1, widthDp - 125) - (count > 1 ? 6 : 0)) / (float)Math.max(1, count) - 14;
+    StringBuilder description = new StringBuilder(name).append(". ").append(headline);
+    for (int i = 0; i < fields.length; i++) {
+      boolean shown = visible(snapshot.findViewById(id(fields[i])));
+      header.setViewVisibility(cells[i], shown ? View.VISIBLE : View.GONE);
+      String value = texts.getOrDefault(fields[i], "");
+      header.setTextViewText(numbers[i], value);
+      header.setTextViewTextSize(numbers[i], TypedValue.COMPLEX_UNIT_SP, fitLabel(value, 18, available));
+      header.setTextColor(numbers[i], metricColor(fields[i]));
+      header.setInt(icons[i], "setColorFilter", icon);
+      if (shown) description.append(". ").append(Language.text(local,
+          i == 0 ? (value.contains("%") ? R.string.battery_level : R.string.electric_range) : R.string.fuel_range))
+          .append(": ").append(value);
     }
-    if (metrics.isEmpty()) title.append(texts.getOrDefault("tv_widget_charge_desc", ""));
-    rv.setTextViewText(id("widget_vehicle_name"), title);
+    header.setViewVisibility(R.id.compact_message, count == 0 ? View.VISIBLE : View.GONE);
+    header.setTextViewText(R.id.compact_message, charging);
+    header.setTextColor(R.id.compact_message, secondary);
+    if (inlineStatus) description.append(". ").append(message.isEmpty()
+        ? fresh.text(local, System.currentTimeMillis(), style.staleMinutes) : message);
+    // Keep the original TextView's hit area and accessibility label; draw the same information above it.
+    rv.setTextViewText(id("widget_vehicle_name"), headline + "\n" + texts.getOrDefault(fields[0], "")
+        + " " + texts.getOrDefault(fields[1], ""));
+    textColor("widget_vehicle_name", Color.TRANSPARENT);
     size("widget_vehicle_name", 10);
-    integer("widget_vehicle_name", "setMaxLines", 2);
     integer("widget_vehicle_name", "setMinLines", 2);
-    rv.setContentDescription(
-        id("widget_vehicle_name"),
-        name
-            + ". "
-            + charging
-            + ". "
-            + (battery.isEmpty() ? "" : Language.text(local, R.string.desc_battery, battery) + ". ")
-            + texts.getOrDefault("widget_current_mileage", "")
-            + "; "
-            + texts.getOrDefault("widget_total_mileage", "")
-            + ". "
-            + (inlineStatus
-                ? message.isEmpty()
-                    ? fresh.text(local, System.currentTimeMillis(), style.staleMinutes)
-                    : message
-                : ""));
+    integer("widget_vehicle_name", "setMaxLines", 2);
+    rv.setContentDescription(id("widget_vehicle_name"), description.toString());
+    return header;
   }
 }

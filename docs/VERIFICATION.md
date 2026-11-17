@@ -2,7 +2,28 @@
 
 Проверка относится к компаньону dev.li.widget. Оригинальный APK Li Auto не изменялся и не включён в релиз.
 
-## Публичный релиз: сборка 17
+## Публичный релиз: сборка 18
+
+Версия **1.0**, `versionCode` **18**, Android 12+ / target API 36. Подпись сохранена от предыдущего релиза.
+
+- Исправлена потеря пиктограмм электричества и топлива в компактном 4×2. В сборке 17 две ImageSpan исчезали при сериализации; отдельные ImageView сборки 18 остаются видимыми после Parcel и повторного применения RemoteViews.
+- Пройдены **82 нативные отрисовки**. Базовые 48 покрывают семь форматов, RU/EN, светлую/тёмную темы, минимальные размеры с масштабом шрифта 1.3, состояния зарядки, отключённые действия и подтверждения. Дополнительные 34 проверяют исправленные взаимодействия и размеры.
+- В прикреплённом окне Android проверены реальные события касания: вся информационная карточка вызывает только исходный тестовый обработчик обновления; углы кнопки настроек вызывают только настройки. Доступная область кнопки настроек не меньше **48×48 dp**, включая «Зарядку» 250×110 dp.
+- После исправления компактной шапки продолжают работать исходные обработчики имени автомобиля, обновления и настроек. Четыре действия в обоих избранных также сохранены. В тесте все обработчики локальные; реальные команды автомобилю не отправлялись.
+- Отключённое источником обновление не срабатывает. При отсутствии исходного обработчика собственная команда не создаётся. Повторное применение RemoteViews не дублирует элементы.
+- В настоящем MainActivity проверены настройки всех семи форматов: «Подписи кнопок» есть только у универсального, большого и двух избранных. Приложение не записывало новые параметры оформления в ходе этой проверки.
+- Все семь провайдеров зарегистрированы и привязаны в Android AppWidgetHost; минимальные размеры, начальные и каталожные макеты проверены. Временные виджеты теста удалены.
+- По **204 строки** каждого языка; проверены совпадение ключей/параметров, XML, ссылки, граница приватных данных, состав APK, подпись и выравнивание. Тестовый код и ключ подписи в публикуемый APK и исходники не включены.
+
+SHA-256 APK: `5444e7628a5a905a241ed200d9de75f8ac6ba784f1e4f3e0cf798afedf1677ec`.
+
+SHA-256 сертификата: `8059d47d6463e65219722718ad63e64f1d985641d08b0500e5bdd0278ce8629c`.
+
+Среда: Android 16 / API 36, x86_64, эмулятор, Pixel Launcher. Показания на снимках синтетические. Физические телефоны, другие лаунчеры, фактический ответ автомобиля на обновление и расход батареи отдельно не измерялись. Получение и перевод времени зарядки сохранены.
+
+Ниже приведены исторические результаты предыдущих сборок.
+
+## Предыдущий публичный релиз: сборка 17
 
 - Видимая версия **1.0**, `versionCode` **17**, `minSdk` 31, `targetSdk` 36. Подпись совпадает с прежними сборками.
 - Android регистрирует **семь провайдеров** с отдельными размерами: универсальный, большой, минимальный, запас хода, два избранных и зарядка. Все привязаны через настоящий `AppWidgetHost`; их RemoteViews и начальные/каталожные макеты успешно применены.
@@ -91,7 +112,12 @@ SHA-256 сертификата подписи: `8059d47d6463e65219722718ad63e64f
 
 ## English summary
 
-Current public release: **1.0, build 17**, Android API 31+, targeting API 36, with the existing signing certificate. All seven Android providers were registered and bound in a real `AppWidgetHost`. Their initial/picker layouts applied successfully. **48 native rendering checks** covered RU/EN, light/dark, minimum dimensions with font scale 1.3, confirmation/disabled states and charging. All four original test action handlers were delivered in both favorites layouts; no real vehicle command was sent. The installed production UI exposed all seven formats and opened Android's 2×2 pin dialog for Favorites.
+Current public release: **1.0, build 18**, signed with the existing release certificate. **82 native renders** passed, including RU/EN, light/dark and minimum dimensions with larger system text. Attached-window touch events verified original refresh callbacks, independent 48×48 dp settings targets including Charging at minimum height, and the original compact header handlers. The electricity/fuel ImageViews survive Parcel/reapply. Disabled and missing-refresh cases were checked. The production settings UI hides button-label sizing in all three formats without a control panel. All seven providers were registered and bound by Android, and both languages contain 204 matching resource keys.
+
+The checks used synthetic source readings and local dummy callbacks on Android API 36. No real vehicle command was sent. The release checks, signing certificate and alignment passed. Physical phones, other launchers, vehicle response and battery usage were not tested separately for this build. Charging-time interpretation remains unchanged.
+
+
+Previous public release: **1.0, build 17**, Android API 31+, targeting API 36, with the existing signing certificate. All seven Android providers were registered and bound in a real `AppWidgetHost`. Their initial/picker layouts applied successfully. **48 native rendering checks** covered RU/EN, light/dark, minimum dimensions with font scale 1.3, confirmation/disabled states and charging. All four original test action handlers were delivered in both favorites layouts; no real vehicle command was sent. The installed production UI exposed all seven formats and opened Android's 2×2 pin dialog for Favorites.
 
 Both languages have 203 matching resource keys. Signature, alignment, source/privacy boundary, XML, links and APK-content checks passed. Test classes, credentials, private keys and Java debug metadata are excluded. The app includes its documented generated avatar atlas. Release source and downloadable archives exclude private build inputs. Charging-time interpretation is unchanged; missing/hidden range values remain unavailable, and unconnected samples are explicitly labelled.
 
