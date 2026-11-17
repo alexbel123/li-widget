@@ -12,6 +12,8 @@ Li Widget — локальный компаньон для виджета отд
 
 Разрешения используются для системной привязки виджета, службы обновления с уведомлением и восстановления работы после загрузки устройства. Уведомления можно отключить в настройках Android, но ограничения фоновой работы могут мешать обновлениям. Геолокация, контакты, Bluetooth и доступ к общему хранилищу не запрашиваются.
 
+Если выбрать своё фото для аватара, системная галерея предоставляет доступ к выбранному изображению. Li Widget сохраняет в закрытой папке приложения уменьшенную копию без исходных метаданных. Фото используется только для оформления. Последняя сохранённая копия удаляется, когда ни один виджет или шаблон её больше не использует.
+
 Нажатия на штатные действия передаются оригинальным обработчикам Li Auto. Данные и сетевое взаимодействие оригинального приложения регулируются его собственными условиями и политикой; эта политика их не заменяет.
 
 Обращения через GitHub подчиняются правилам GitHub. Публичные Issues видны всем: удаляйте VIN, регистрационные номера, имена, местоположение и данные аккаунта из текста и изображений. Вопросы по конфиденциальности с чувствительными деталями можно отправить через [приватное сообщение о безопасности](https://github.com/alexbel123/li-widget/security/advisories/new).
@@ -19,6 +21,8 @@ Li Widget — локальный компаньон для виджета отд
 ## English
 
 Li Widget is a local companion to the separately installed Li Auto app. It has no data-collection server, ads, analytics or crash-report upload. It does not request internet permission or make its own network requests.
+
+When you choose an avatar photo, the system picker grants access to that image. Li Widget stores a small copy with its original metadata removed in private app storage. The copy is removed when it is no longer used by any widget or preset.
 
 After Android's binding approval, the companion receives the original widget's `RemoteViews`. These may contain the vehicle name, battery, range, button states, messages and update time. They are used on-device for display. Li Widget does not request credentials, account tokens or VIN and does not read Li Auto's private storage.
 

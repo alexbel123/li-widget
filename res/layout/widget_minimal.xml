@@ -1,0 +1,11 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/variant_root" android:layout_width="match_parent" android:layout_height="64dp" android:orientation="horizontal" android:gravity="center_vertical" android:padding="10dp" android:background="@drawable/surface_system" android:clipToOutline="true">
+<LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
+<TextView android:id="@+id/electric_caption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/electric_range" android:textSize="10sp" android:textColor="@color/widget_initial_primary" android:fontFamily="sans-serif" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
+<TextView android:id="@+id/range_electric" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textSize="24sp" android:textColor="@color/widget_initial_primary" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" android:fontFamily="sans-serif-medium"/>
+</LinearLayout>
+<TextView android:id="@+id/variant_divider" android:layout_width="1dp" android:layout_height="28dp" android:layout_marginHorizontal="8dp" android:background="@color/widget_initial_secondary" android:importantForAccessibility="no"/>
+<LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
+<TextView android:id="@+id/fuel_caption" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/fuel_range" android:textSize="10sp" android:textColor="@color/widget_initial_primary" android:fontFamily="sans-serif" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
+<TextView android:id="@+id/range_fuel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textSize="24sp" android:textColor="@color/widget_initial_primary" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" android:fontFamily="sans-serif-medium"/>
+</LinearLayout>
+</LinearLayout>

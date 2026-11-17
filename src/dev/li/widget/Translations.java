@@ -11,6 +11,9 @@ final class Translations {
   private static final Map<String, Integer> RESOURCES = new LinkedHashMap<>();
   private static final Map<String, Integer> WORDS = new LinkedHashMap<>();
   private static final Map<Integer, Integer> DESCRIPTIONS = new LinkedHashMap<>();
+  private static final String CHARGE_CALCULATING = "充电剩余时间计算中";
+  private static final Pattern CHARGE_HOURS = Pattern.compile("剩余\\s*(\\d{1,3})\\s*小时\\s*(\\d{1,3})\\s*分钟");
+  private static final Pattern CHARGE_MINUTES = Pattern.compile("剩余\\s*(\\d{1,3})\\s*分钟");
 
   static {
     entry("button_confirm_text", R.string.action_confirm, "再次点击", "点击确认", "再次点击确认");
@@ -43,7 +46,7 @@ final class Translations {
     entry("widget_toast_locking", R.string.source_locking, "正在锁车…", "正在上锁");
     entry("widget_toast_unlocking", R.string.source_unlocking, "正在解锁…", "正在解锁");
     entry("widget_toast_refreshing", R.string.source_refreshing, "正在刷新…", "正在刷新...");
-    entry("card_charge_time", R.string.source_charge_calculating, "充电剩余时间计算中");
+    entry("card_charge_time", R.string.source_charge_calculating, CHARGE_CALCULATING);
     WORDS.put("无法充电", R.string.source_charge_error);
     WORDS.put("执行成功", R.string.done);
     WORDS.put("理想汽车", R.string.li_auto);
@@ -77,14 +80,14 @@ final class Translations {
         return Language.text(local, item.getValue());
     }
     if (field.equals("tv_widget_charge_desc")) {
-      Matcher hours = Pattern.compile("剩余\\s*(\\d+)\\s*小时\\s*(\\d+)\\s*分钟").matcher(value);
+      Matcher hours = CHARGE_HOURS.matcher(value);
       if (hours.matches())
         return Language.text(
             local,
             R.string.source_charge_hours,
             Integer.parseInt(hours.group(1)),
             Integer.parseInt(hours.group(2)));
-      Matcher minutes = Pattern.compile("剩余\\s*(\\d+)\\s*分钟").matcher(value);
+      Matcher minutes = CHARGE_MINUTES.matcher(value);
       if (minutes.matches())
         return Language.text(
             local, R.string.source_charge_minutes, Integer.parseInt(minutes.group(1)));
@@ -95,6 +98,22 @@ final class Translations {
     }
     // Unknown messages are retained so a real source error is never hidden.
     return value;
+  }
+
+  static boolean isCharging(CharSequence value) {
+    String status = value.toString().trim();
+    return status.equals(CHARGE_CALCULATING)
+        || CHARGE_HOURS.matcher(status).matches()
+        || CHARGE_MINUTES.matcher(status).matches();
+  }
+
+  static int chargeMinutes(CharSequence value) {
+    String status = value.toString().trim();
+    Matcher hours = CHARGE_HOURS.matcher(status);
+    if (hours.matches())
+      return Integer.parseInt(hours.group(1)) * 60 + Integer.parseInt(hours.group(2));
+    Matcher minutes = CHARGE_MINUTES.matcher(status);
+    return minutes.matches() ? Integer.parseInt(minutes.group(1)) : -1;
   }
 
   static String description(Context context, String label) {

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0 · build 17 — 2026-11-17
+
+Android `versionName` remains **1.0**; `versionCode` is **17**. Release tag: `v1.0-build17`. This update includes the work since public build 9.
+
+- Seven registered Android widgets: overview 4×2, large 4×3, minimal 2×1, range 2×2, favorites 4×1 and 2×2, charging 4×2. Each has its own size constraints; small formats no longer reserve the overview's footprint.
+- Widget-type selection and pinning in the app, plus per-widget settings across every provider. Removing one type keeps updates running for the other installed widgets.
+- Both favorites layouts retain the original four action handlers, order, disabled states and confirmations. Configure the shared action panel in Li Auto.
+- Redesigned mobile settings with a compact header, native preview and clearer groups; sample previews are explicitly labelled.
+- Matte/glass appearance, Android theme colors, system theme updates, and pure black support.
+- Larger vehicle header and optional avatar: generated L-series illustrations, model/paint selection, or a local photo through Android's system picker.
+- Brief charging pulse on a changed percentage or remaining time, followed by a static bolt. Existing charging-time handling is unchanged.
+- Tailgate artwork and inactive icon colors aligned with the other controls.
+- Bounded render/resource caches and private local build-key permissions on POSIX systems; release signing secrets remain outside the repository.
+- 48 native rendering checks, all seven registered/bound providers, original test action handlers, RU/EN, minimum sizes with larger text, and the production format-picker/pin flow verified on Android API 36. Real-car commands were not part of these checks.
+
+[Widget gallery and sizes](docs/WIDGETS.md) · [Verification and limits](docs/VERIFICATION.md).
+
 ## 1.0 — 2026-11-16
 
 First public GitHub release. Android `versionName` **1.0**, `versionCode` **9**.

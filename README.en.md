@@ -5,26 +5,31 @@
 
 **An unofficial companion for the original Li Auto widget.** Customize its appearance and translate known labels while keeping the original controls and their handlers. The original Li Auto app must be installed separately.
 
-## Download 1.0
+## Download 1.0 · build 17
 
 **[Download APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Download ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [All release files](https://github.com/alexbel123/li-widget/releases/latest)
 
 The ZIP contains the same APK, installation notes and its checksum. Browse the source in this repository or download **Source code** from the release page. Use `SHA256SUMS.txt` to verify downloads.
 
 <table>
-  <tr><th>Light theme</th><th>Dark theme</th></tr>
-  <tr><td><img src="docs/images/preview-light-en.png" width="360" alt="Li Widget light preview"></td><td><img src="docs/images/preview-dark-en.png" width="360" alt="Li Widget dark preview"></td></tr>
+<tr><th>Format</th><th>Light theme</th><th>Dark theme</th></tr>
+<tr><td>Minimal · 2×1</td><td><img src="docs/images/minimal-light-ru.png" width="240" alt="Minimal · 2×1, light"></td><td><img src="docs/images/minimal-dim-ru.png" width="240" alt="Minimal · 2×1, dark"></td></tr>
+<tr><td>Range · 2×2</td><td><img src="docs/images/range-light-ru.png" width="240" alt="Range · 2×2, light"></td><td><img src="docs/images/range-dim-ru.png" width="240" alt="Range · 2×2, dark"></td></tr>
+<tr><td>Favorites · 2×2</td><td><img src="docs/images/favorites_grid-light-ru.png" width="240" alt="Favorites · 2×2, light"></td><td><img src="docs/images/favorites_grid-dim-ru.png" width="240" alt="Favorites · 2×2, dark"></td></tr>
 </table>
 
-*These are Android widget-picker previews using the project's own artwork. Dashes indicate no data. A connected widget displays data and the original icons from the installed Li Auto app; their states and availability depend on the vehicle.*
+*Actual native rendering of build 17 on an Android emulator, with synthetic readings and no owner data. The UI also supports English. [All seven formats and the format picker](docs/WIDGETS.md).*
 
 ## Features
 
 - Russian and English for the companion app, widgets and update notification.
 - Light, dark, pure black and system themes. Black stays `#000000`.
 - Android system neutral colors or a neutral gray palette.
-- Per-widget styling, compact and detailed layouts, text size, optional battery percentage and update time.
-- Home-screen resizing down to **250 × 110 dp**; the launcher determines cell occupancy.
+- Per-widget styling, matte and glass surfaces, text size, optional battery percentage and update time. [System themes](docs/THEMING.md).
+- Vehicle avatar: L6/L7/L8/L9 illustrations with paint selection, or a photo from the system picker. [Avatars](docs/AVATARS.md).
+- A brief lightning pulse when charging percentage or remaining time changes, then a static icon.
+- Seven Android picker entries: overview 4×2, large 4×3, minimal 2×1, range 2×2, favorites 4×1 and 2×2, charging 4×2. [Sizes and behavior](docs/WIDGETS.md).
+- Minimal resizes down to **110 × 48 dp**, square formats to **110 × 110 dp**; the launcher determines cell occupancy.
 - Four actions selected and reordered in the original Li Auto editor.
 - **Move** opens the original forward/backward remote-movement interface.
 - Stale-data indication without inventing a date for cached timestamps.
@@ -34,7 +39,7 @@ The ZIP contains the same APK, installation notes and its checksum. Browse the s
 1. Install the APK from [Releases](https://github.com/alexbel123/li-widget/releases/latest) on Android 12 or newer. If requested, allow this browser or file manager to install apps.
 2. Open the original Li Auto app and sign in to your vehicle account.
 3. Open Li Widget, choose **Connect Li Auto**, and approve Android's widget-binding request.
-4. Allow the ongoing update notification and add Li Widget to your home screen.
+4. Allow the ongoing update notification. In the Android widget picker → **Li Widget**, choose one of the seven formats. Alternatively, use **New widget → Style → Widget type → Add to home screen** in the app.
 5. Choose **Style → Language → English**, then customize the appearance. Use **Buttons** to open the original action editor.
 
 Updates signed with the same key install over the previous version. [Detailed setup and troubleshooting](docs/INSTALL.md).

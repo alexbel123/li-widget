@@ -39,6 +39,11 @@ public class LiWidgetProvider extends AppWidgetProvider {
       int pad = Math.round(8 * c.getResources().getDisplayMetrics().density);
       r.setViewPadding(R.id.empty, pad, pad, pad, pad);
     }
+    if (height < 70) {
+      r.setViewVisibility(R.id.empty_message, android.view.View.GONE);
+      r.setInt(R.id.empty_title, "setMaxLines", 2);
+      r.setTextViewTextSize(R.id.empty_title, android.util.TypedValue.COMPLEX_UNIT_SP, 11);
+    }
     r.setOnClickPendingIntent(
         R.id.empty,
         PendingIntent.getActivity(
@@ -65,7 +70,7 @@ public class LiWidgetProvider extends AppWidgetProvider {
 
   @Override
   public void onDisabled(Context c) {
-    c.stopService(new Intent(c, BridgeService.class));
+    if (State.ownIds(c).length == 0) c.stopService(new Intent(c, BridgeService.class));
   }
 
   @Override

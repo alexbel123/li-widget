@@ -50,28 +50,42 @@ def main():
     key = args.keystore
     if key is None:
         private = ROOT / '.local'
-        private.mkdir(exist_ok=True)
+        if private.is_symlink():
+            parser.error('The managed .local directory must not be a symbolic link.')
+        private.mkdir(mode=0o700, exist_ok=True)
+        if not windows:
+            private.chmod(0o700)
         key = private / 'liwidget.jks'
         password_file = private / 'keystore-password.txt'
+        for managed_file in (key, password_file):
+            if managed_file.is_symlink():
+                parser.error('Managed signing files must not be symbolic links; use --keystore for an external key.')
+            if managed_file.exists() and not windows:
+                managed_file.chmod(0o600)
         if key.exists() and not password_file.exists():
             parser.error('Local keystore password is missing; restore .local/keystore-password.txt.')
         if not password_file.exists():
-            password_file.write_text(secrets.token_urlsafe(32), encoding='utf-8')
+            descriptor = os.open(password_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, 'w', encoding='utf-8') as password_output:
+                password_output.write(secrets.token_urlsafe(32))
         env[args.password_env] = password_file.read_text(encoding='utf-8').strip()
     elif not key.is_file():
         parser.error('Keystore does not exist: ' + str(key))
     if not env.get(args.password_env):
         parser.error('Set the password environment variable: ' + args.password_env)
 
-    def run(command):
+    def run(command, *, signing=False):
         print('Running ' + Path(command[0]).name, flush=True)
-        subprocess.run([str(part) for part in command], env=env, check=True)
+        child_env = env if signing else {name: value for name, value in env.items() if name != args.password_env}
+        subprocess.run([str(part) for part in command], env=child_env, check=True)
 
     if not key.exists():
         run([java_tool('keytool'), '-genkeypair', '-keystore', key, '-alias', args.alias,
              '-storepass:env', args.password_env, '-keypass:env', args.password_env,
              '-keyalg', 'RSA', '-keysize', '3072', '-validity', '10000',
-             '-dname', 'CN=Li Widget Local Build', '-noprompt'])
+             '-dname', 'CN=Li Widget Local Build', '-noprompt'], signing=True)
+    if args.keystore is None and not windows:
+        key.chmod(0o600)
     args.work_directory.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix='liwidget-', dir=args.work_directory.resolve()))
     for folder in ('gen', 'classes', 'dex'):
@@ -90,7 +104,7 @@ def main():
     run([sdk_tool('zipalign'), '-f', '4', work / 'base.apk', work / 'aligned.apk'])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     run([sdk_tool('apksigner'), 'sign', '--ks', key, '--ks-key-alias', args.alias,
-         '--ks-pass', 'env:' + args.password_env, '--out', args.output, work / 'aligned.apk'])
+         '--ks-pass', 'env:' + args.password_env, '--out', args.output, work / 'aligned.apk'], signing=True)
     run([sdk_tool('apksigner'), 'verify', '--verbose', args.output])
     run([sdk_tool('zipalign'), '-c', '4', args.output])
     print('APK: ' + str(args.output.resolve()))

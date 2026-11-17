@@ -1,0 +1,14 @@
+<resources>
+    <style name="LiDialogLight" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">#6B4E2B</item>
+    </style>
+    <style name="LiDialogDark" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#E0C5A1</item>
+    </style>
+    <style name="LiDialogDynamicLight" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">@android:color/system_accent1_600</item>
+    </style>
+    <style name="LiDialogDynamicDark" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@android:color/system_accent1_200</item>
+    </style>
+</resources>

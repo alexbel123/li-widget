@@ -11,9 +11,16 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 NS = '{http://schemas.android.com/apk/res/android}'
+AVATAR_ATLAS = 'res/drawable-nodpi/vehicle_avatar_atlas.png'
+PACKAGED_ATLAS = 'res/drawable-nodpi-v4/vehicle_avatar_atlas.png'
 EXCLUDED = {'.git', '.local', 'build', 'dist', '__pycache__', '.idea', '.gradle'}
 FORBIDDEN_SUFFIXES = {'.jks', '.keystore', '.p12', '.pfx', '.pem', '.key', '.apk',
                       '.aab', '.zip', '.idsig', '.dex', '.class', '.pyc', '.log'}
+REMOTE_VIEW_TAGS = {'AdapterViewFlipper', 'FrameLayout', 'GridLayout', 'GridView',
+                    'LinearLayout', 'ListView', 'RelativeLayout', 'StackView', 'ViewFlipper',
+                    'AnalogClock', 'Button', 'Chronometer', 'ImageButton', 'ImageView',
+                    'ProgressBar', 'TextClock', 'TextView', 'RadioButton', 'RadioGroup',
+                    'CheckBox', 'Switch', 'include', 'merge'}
 PRIVATE = re.compile(
     r'[A-Za-z]:[\\/](?:Users|Documents and Settings)[\\/]'
     r'|/(?:Users|home)/[A-Za-z0-9_-]+/'
@@ -75,6 +82,9 @@ def check_apk(path):
         check(len(entries) == len(set(entries)), 'Duplicate APK entries')
         for name in entries:
             suffix = Path(name).suffix.lower()
+            if name in {AVATAR_ATLAS, PACKAGED_ATLAS}:
+                check_png(archive.read(name), name)
+                continue
             check(suffix not in {'.jks', '.keystore', '.pem', '.py', '.java', '.png', '.webp', '.jpg'},
                   'Unexpected APK content: ' + name)
         dex = [name for name in entries if name.endswith('.dex')]
@@ -85,7 +95,7 @@ def check_apk(path):
                 check('Fixture' not in value and 'DemoSettings' not in value, 'Test class in APK')
                 check('android/util/Log;' not in value, 'Production logging in APK')
                 check(not value.endswith('.java'), 'Java debug metadata in APK')
-    print('PASS: APK archive, no private markers, test code, debug metadata or bundled raster assets')
+    print('PASS: APK archive, approved avatar atlas, no private markers, test code or debug metadata')
 
 
 def main():
@@ -98,13 +108,18 @@ def main():
         check(path.suffix.lower() not in FORBIDDEN_SUFFIXES and not path.name.startswith('.env'),
               'Private/generated file in source tree: ' + label)
         if path.suffix == '.png':
-            check(path.parent == ROOT / 'docs' / 'images', 'Unexpected raster resource: ' + label)
+            check(path.parent == ROOT / 'docs' / 'images' or label == AVATAR_ATLAS,
+                  'Unexpected raster resource: ' + label)
             check_png(path.read_bytes(), label)
             continue
         content = path.read_text(encoding='utf-8')
         check(not PRIVATE.search(content), 'Private marker in ' + label + ' (value omitted)')
         if path.suffix == '.xml':
-            ET.fromstring(content)
+            document = ET.fromstring(content)
+            if path.parent == ROOT / 'res' / 'layout':
+                for view in document.iter():
+                    check(view.tag in REMOTE_VIEW_TAGS,
+                          'Unsupported RemoteViews class in ' + label + ': ' + view.tag)
         if path.suffix == '.md':
             links = re.findall(r'\]\(([^\s)]+)(?:\s+[^)]*)?\)', content)
             links += re.findall(r'(?:src|href)="([^"]+)"', content)
@@ -136,6 +151,8 @@ def main():
     for node in app:
         if node.tag in ('receiver', 'service'):
             check(node.get(NS + 'exported') == 'false', 'Exported background component')
+        if node.get(NS + 'name') == '.AvatarGalleryActivity':
+            check(node.get(NS + 'exported') == 'false', 'Avatar picker exported')
     check(not app.findall('provider'), 'Unexpected content provider')
     check('MIT License' in (ROOT / 'LICENSE').read_text(), 'Missing MIT license')
     print('PASS: {} source files, {} strings per language, local links, XML, privacy boundary'.format(

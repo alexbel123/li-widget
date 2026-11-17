@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.li.widget" android:versionCode="9" android:versionName="1.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.li.widget" android:versionCode="17" android:versionName="1.0">
  <uses-sdk android:minSdkVersion="31" android:targetSdkVersion="36"/>
  <uses-permission android:name="android.permission.BIND_APPWIDGET"/>
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -11,9 +11,34 @@
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/></intent-filter>
   </activity>
-  <receiver android:name=".LiWidgetProvider" android:exported="false">
+  <activity android:name=".AvatarGalleryActivity" android:exported="false"/>
+  <receiver android:name=".LiWidgetProvider" android:label="@string/format_full" android:exported="false">
    <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
    <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$Large" android:label="@string/format_large" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_large"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$Minimal" android:label="@string/format_minimal" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_minimal"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$Range" android:label="@string/format_range" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_range"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$Favorites" android:label="@string/format_favorites" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_favorites"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$FavoritesGrid" android:label="@string/format_favorites_grid" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_favorites_grid"/>
+  </receiver>
+  <receiver android:name=".FormatProviders$Charging" android:label="@string/format_charging" android:exported="false">
+   <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter>
+   <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_charging"/>
   </receiver>
   <receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
   <service android:name=".BridgeService" android:exported="false" android:foregroundServiceType="specialUse">

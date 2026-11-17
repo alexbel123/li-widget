@@ -16,10 +16,16 @@ public class BridgeService extends Service {
   private static Freshness freshness = new Freshness("", 0);
   private static volatile BridgeService instance;
   private AppWidgetHost host;
+  private ThemeWatcher themeWatcher;
   private String notificationLanguage = "";
   private final Handler handler = new Handler(Looper.getMainLooper());
   private int attachedId = -1;
   private final Runnable refresh = () -> refreshSnapshot();
+  // The launcher ends the animation itself. Clear its cached trigger afterwards as well.
+  private final Runnable settleCharge = () -> {
+    if (sourceViews != null && sourceSnapshot != null && State.connected(this))
+      publishWidgets(false, false);
+  };
   private final Runnable minute =
       new Runnable() {
         public void run() {
@@ -38,6 +44,10 @@ public class BridgeService extends Service {
   @Override
   public void onCreate() {
     super.onCreate();
+    themeWatcher = new ThemeWatcher(this, () -> {
+      handler.removeCallbacks(refresh);
+      handler.post(refresh);
+    });
     updateNotification();
     host =
         new AppWidgetHost(this, State.HOST) {
@@ -115,6 +125,8 @@ public class BridgeService extends Service {
     }
     if (attachedId != id) {
       host.stopListening();
+      sourceViews = null;
+      sourceSnapshot = null;
       host.createView(this, id, info);
       attachedId = id;
       host.startListening();
@@ -127,6 +139,7 @@ public class BridgeService extends Service {
   private void refreshSnapshot() {
     updateNotification();
     if (!State.connected(this)) return;
+    handler.removeCallbacks(settleCharge);
     try {
       // A non-listening host asks the system for its complete cached RemoteViews.
       // This keeps original PendingIntents intact after partial source updates.
@@ -144,6 +157,8 @@ public class BridgeService extends Service {
           this,
           State.sourceId(this),
           AppWidgetManager.getInstance(this).getAppWidgetInfo(State.sourceId(this)));
+      View previous = sourceSnapshot;
+      Freshness last = freshness;
       sourceViews = captured[0] == null ? null : captured[0].remote;
       sourceSnapshot = captured[0];
       if (sourceViews != null)
@@ -152,9 +167,14 @@ public class BridgeService extends Service {
                 this,
                 Appearance.sourceText(this, sourceSnapshot, "widget_update_time"),
                 System.currentTimeMillis());
-      AppWidgetManager manager = AppWidgetManager.getInstance(this);
-      for (int widget : State.ownIds(this))
-        manager.updateAppWidget(widget, forWidget(this, widget));
+      boolean newReading = sourceViews != null && previous != null && freshness.anchor > 0
+          && (!freshness.original.equals(last.original) || readingsChanged(this, previous, sourceSnapshot));
+      ChargeReading charge = ChargeReading.read(this, sourceSnapshot);
+      boolean chargeChanged = sourceViews != null && charge != null
+          && charge.changedFrom(ChargeReading.read(this, previous));
+      publishWidgets(newReading, chargeChanged);
+      if (chargeChanged)
+        handler.postDelayed(settleCharge, WidgetMotion.CHARGE_PULSE_MILLIS + 150);
       sendBroadcast(new Intent(State.UPDATE).setPackage(getPackageName()));
     } catch (Exception e) {
       sourceViews = null;
@@ -167,7 +187,22 @@ public class BridgeService extends Service {
     }
   }
 
-  static RemoteViews preview(Context c, int id, int width, int height) {
+  private void publishWidgets(boolean newReading, boolean chargeChanged) {
+    AppWidgetManager manager = AppWidgetManager.getInstance(this);
+    for (int widget : State.ownIds(this))
+      manager.updateAppWidget(widget, forWidget(this, widget, newReading, chargeChanged));
+  }
+
+  private static boolean readingsChanged(Context c, View previous, View current) {
+    for (String field : new String[] {"widget_current_mileage", "widget_total_mileage",
+        "widget_battery_percent", "tv_widget_charge_desc"}) {
+      if (!Appearance.sourceText(c, previous, field).equals(Appearance.sourceText(c, current, field))) return true;
+    }
+    return false;
+  }
+
+  private static RemoteViews preview(Context c, int id, int width, int height,
+      boolean newReading, boolean chargeChanged) {
     if (sourceViews == null || sourceSnapshot == null)
       return LiWidgetProvider.empty(
           c,
@@ -181,7 +216,8 @@ public class BridgeService extends Service {
           height);
     try {
       return Appearance.render(
-          c, sourceViews, sourceSnapshot, WidgetStyle.read(c, id), width, height, freshness);
+          c, sourceViews, sourceSnapshot, WidgetStyle.read(c, id), width, height, freshness,
+          newReading, chargeChanged);
     } catch (Exception e) {
       return LiWidgetProvider.empty(
           c,
@@ -192,12 +228,28 @@ public class BridgeService extends Service {
     }
   }
 
+  static RemoteViews editorPreview(Context c, int id, int width, int height) {
+    if (sourceViews == null || sourceSnapshot == null
+        || Appearance.sourceText(c, sourceSnapshot, "widget_vehicle_name").trim().isEmpty()) return null;
+    try {
+      return Appearance.render(c, sourceViews, sourceSnapshot, WidgetStyle.read(c, id), width, height, freshness);
+    } catch (Exception unavailable) {
+      return null;
+    }
+  }
+
   static RemoteViews forWidget(Context c, int id) {
+    return forWidget(c, id, false, false);
+  }
+
+  private static RemoteViews forWidget(Context c, int id, boolean newReading, boolean chargeChanged) {
     Map<SizeF, RemoteViews> views = new LinkedHashMap<>();
-    for (SizeF size : WidgetStyle.sizes(AppWidgetManager.getInstance(c).getAppWidgetOptions(id)))
+    for (SizeF size : WidgetStyle.sizes(AppWidgetManager.getInstance(c).getAppWidgetOptions(id),
+        WidgetStyle.read(c, id).format))
       views.put(
           size,
-          preview(c, id, (int) Math.floor(size.getWidth()), (int) Math.floor(size.getHeight())));
+          preview(c, id, (int) Math.floor(size.getWidth()), (int) Math.floor(size.getHeight()),
+              newReading, chargeChanged));
     return views.size() == 1 ? views.values().iterator().next() : new RemoteViews(views);
   }
 
@@ -224,6 +276,7 @@ public class BridgeService extends Service {
 
   @Override
   public void onDestroy() {
+    if (themeWatcher != null) themeWatcher.close();
     instance = null;
     handler.removeCallbacksAndMessages(null);
     unregisterReceiver(clock);

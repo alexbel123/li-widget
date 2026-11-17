@@ -29,13 +29,17 @@ final class State {
   }
 
   static int[] ownIds(Context c) {
-    return AppWidgetManager.getInstance(c)
-        .getAppWidgetIds(new ComponentName(c, LiWidgetProvider.class));
+    java.util.ArrayList<Integer> ids = new java.util.ArrayList<>();
+    AppWidgetManager manager = AppWidgetManager.getInstance(c);
+    for (WidgetFormat format : WidgetFormat.values())
+      for (int id : manager.getAppWidgetIds(format.component(c))) ids.add(id);
+    int[] result = new int[ids.size()];
+    for (int i = 0; i < result.length; i++) result[i] = ids.get(i);
+    return result;
   }
 
   static boolean ownsWidget(Context c, int id) {
-    AppWidgetProviderInfo info = AppWidgetManager.getInstance(c).getAppWidgetInfo(id);
-    return info != null && new ComponentName(c, LiWidgetProvider.class).equals(info.provider);
+    return id >= 0 && WidgetFormat.of(c, id) != null;
   }
 
   static ComponentName source(Context c) {

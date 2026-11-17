@@ -2,7 +2,29 @@
 
 Проверка относится к компаньону dev.li.widget. Оригинальный APK Li Auto не изменялся и не включён в релиз.
 
-## Публичный релиз: сборка 9
+## Публичный релиз: сборка 17
+
+- Видимая версия **1.0**, `versionCode` **17**, `minSdk` 31, `targetSdk` 36. Подпись совпадает с прежними сборками.
+- Android регистрирует **семь провайдеров** с отдельными размерами: универсальный, большой, минимальный, запас хода, два избранных и зарядка. Все привязаны через настоящий `AppWidgetHost`; их RemoteViews и начальные/каталожные макеты успешно применены.
+- **48 нативных отрисовок**: RU/EN, светлая/тёмная темы, семь форматов, минимальные размеры с масштабом шрифта 1.3, подтверждения, отключённые действия и состояния зарядки. Проверены границы элементов и повторное применение без дублирования строк.
+- Во всех сочетаниях языка и темы обеих панелей избранного доставлены четыре исходных тестовых `PendingIntent`. Обработчики в тесте локальные; команды автомобилю не отправлялись.
+- Через интерфейс установленного APK открыты все семь типов. Выбор «Избранное 2×2» вызвал системный диалог Android с размером 2×2. Тип закреплён за провайдером уже добавленного экземпляра.
+- Процент зарядки не выдаётся за километры; скрытые или отсутствующие значения запаса хода отображаются прочерком. Перевод исходного времени зарядки сохранён; отдельного расчёта нет. Повторный снимок не запускает пульсацию заново.
+- В редакторе тестовые значения явно помечены как образец. На рабочем столе без источника отображается приглашение подключить Li Auto.
+- По **203 строки** в RU/EN, совпадающие ключи и параметры. Сборка, подпись, выравнивание, XML, локальные ссылки, разрешения, экспорты и состав APK проверены. В APK нет инструментальных тестов, приватных маркеров и Java debug metadata; единственное растровое изображение приложения — документированный атлас аватаров проекта.
+- Проверка исходников и релизных файлов не обнаружила встроенных аккаунтов, VIN, секретов или личных путей. Локальные ключи и пароли исключены. На POSIX локальная сборка ограничивает доступ к каталогу ключа и его файлам; символьные ссылки для этих файлов отклоняются.
+
+SHA-256 APK: `19ba4151a78a32a861e2eb3e587341140dd2f0e03c57a797055234146d7ad44c`.
+
+SHA-256 сертификата подписи: `8059d47d6463e65219722718ad63e64f1d985641d08b0500e5bdd0278ce8629c`.
+
+[Нативные изображения и размеры](WIDGETS.md). Показания на новых снимках синтетические, без данных владельца. Проверки выполнялись на Android 16 / API 36, x86_64, Pixel Launcher. На физических смартфонах, Android 12–15 и во всех сторонних лаунчерах эта сборка не проверена. Число ячеек зависит от сетки лаунчера.
+
+При длительных прогонах эмулятор с 2 ГБ памяти и 2 ядрами показывал ANR на фоне системной нагрузки. После перезапуска с 4 ГБ и 4 ядрами меню отвечало; финальный APK открыл Activity за 1,435 с. Это наблюдение о тестовой среде, а не замер производительности или расхода батареи на телефоне.
+
+Ниже сохранены результаты предыдущих сборок; они не заменяют проверки сборки 17.
+
+## Предыдущий публичный релиз: сборка 9
 
 - Видимая версия **1.0**, `versionCode` **9**, `minSdk` 31, `targetSdk` 36.
 - Собственный значок приложения, уведомления и заглушки; нативный предпросмотр меню виджетов с собственной векторной графикой. Извлечённые изображения Li Auto исключены из исходников и APK.
@@ -59,7 +81,7 @@
 
 ## Пределы проверки
 
-Автомобиль и аккаунт владельца к тестовому эмулятору не подключены. Выполнение реальных команд L7/L-серии и серверная доступность не проверялись. Обработчики команд остаются в Li Auto. Числа в прежних инструментальных тестах были синтетическими; публичный предпросмотр использует прочерки.
+Автомобиль и аккаунт владельца к тестовому эмулятору не подключены. Выполнение реальных команд L7/L-серии и серверная доступность не проверялись. Обработчики команд остаются в Li Auto. Числа в инструментальных тестах синтетические. Образец редактора без подключения явно помечен; виджет на рабочем столе не подменяет отсутствующие данные образцом.
 
 Инструментальные проверки выполнялись на Android 16 / API 36 и Pixel Launcher. Android 12–15 и другие лаунчеры отдельно не проверялись.
 
@@ -69,8 +91,10 @@
 
 ## English summary
 
-Public release 1.0 is build 9, targeting API 36 and requiring API 31+. Its native picker and empty states passed 64 layout checks across RU/EN, day/night, 250/352 dp widths, font scales 1.0/1.3 and empty-state heights 110/160/244 dp. The signed update from build 8 preserved widget bindings and settings. Both languages have 142 matching resource keys. Build, signature, alignment, source-boundary and APK-content checks passed.
+Current public release: **1.0, build 17**, Android API 31+, targeting API 36, with the existing signing certificate. All seven Android providers were registered and bound in a real `AppWidgetHost`. Their initial/picker layouts applied successfully. **48 native rendering checks** covered RU/EN, light/dark, minimum dimensions with font scale 1.3, confirmation/disabled states and charging. All four original test action handlers were delivered in both favorites layouts; no real vehicle command was sent. The installed production UI exposed all seven formats and opened Android's 2×2 pin dialog for Favorites.
 
-Earlier checks covered 72 original-widget language/layout combinations, retention of six original action handlers using local test receivers, and 64 cases for the two known tailgate icon pairs and theme/state combinations. Those tests used the resources of the inspected original app locally; they are not bundled in this repository. Public preview images use only project-owned graphics.
+Both languages have 203 matching resource keys. Signature, alignment, source/privacy boundary, XML, links and APK-content checks passed. Test classes, credentials, private keys and Java debug metadata are excluded. The app includes its documented generated avatar atlas. Release source and downloadable archives exclude private build inputs. Charging-time interpretation is unchanged; missing/hidden range values remain unavailable, and unconnected samples are explicitly labelled.
 
-All instrumented checks ran on Android 16 / API 36, Pixel Launcher. Android 12–15 and other launchers were not separately tested. No real vehicle or owner account was connected; live vehicle commands and server availability are unverified. The original Li Auto app has not undergone a full security audit as part of this work. CI confirms buildability, not real-car compatibility.
+Tests used Android 16 / API 36, Pixel Launcher, without an owner account or a connected car. Other Android versions, physical phones and launchers have not been separately validated for this build. CI confirms buildability, not vehicle-command compatibility. A long-running 2 GB emulator exhibited ANR during system pressure; a fresh 4 GB run completed the app flows. No phone performance or battery-life claim is made. The original Li Auto app has not undergone a full security audit as part of this work.
+
+Earlier build results above are retained as historical evidence. The new native images in [WIDGETS.md](WIDGETS.md) show synthetic readings, not owner data.

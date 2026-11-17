@@ -20,6 +20,13 @@ import android.widget.*;
 import java.util.*;
 
 final class Appearance {
+  static final int DETAILED_HEADER_DP = 64;
+
+  static float detailedNameSize(WidgetStyle style) {
+    return style.font.equals("large") ? 24 : 22;
+  }
+
+  static int actionInset(int width) { return width < 300 ? 8 : 12; }
   private final Context local, source;
   private final Resources res;
   private final RemoteViews rv;
@@ -30,12 +37,15 @@ final class Appearance {
   private final Freshness fresh;
   private final int widthDp, heightDp;
   private final Map<String, String> texts = new HashMap<>();
+  private final Map<String, Integer> resourceIds = new HashMap<>();
+  private final Map<String, int[]> sourceColorVariants = new HashMap<>();
   private final int primary, secondary, icon, button, alarm;
+  private Bitmap tailgateGlyph;
 
   private Appearance(
       Context c, RemoteViews original, View view, WidgetStyle s, int w, int h, Freshness f)
       throws Exception {
-    local = c;
+    local = Language.context(c);
     source = c.createPackageContext(State.SOURCE, 0);
     res = source.getResources();
     rv = original.clone();
@@ -92,28 +102,55 @@ final class Appearance {
     return s;
   }
 
+  private int labelLines(float available) {
+    Paint paint = new Paint();
+    paint.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+    paint.setTextSize(sp(style.fontSize()));
+    for (int i = 1; i <= 4; i++) {
+      String value = texts.getOrDefault("control_button_text" + i, "");
+      if (value.contains("\n") || paint.measureText(value) > px(available - 1)) return 2;
+    }
+    return 1;
+  }
+
   private int id(String name) {
-    return res.getIdentifier(name, "id", State.SOURCE);
+    return resource(name, "id");
   }
 
   private int drawable(String name) {
-    return res.getIdentifier(name, "drawable", State.SOURCE);
+    return resource(name, "drawable");
+  }
+
+  private int resource(String name, String type) {
+    String key = type + ':' + name;
+    Integer cached = resourceIds.get(key);
+    if (cached == null) {
+      cached = res.getIdentifier(name, type, State.SOURCE);
+      resourceIds.put(key, cached);
+    }
+    return cached;
   }
 
   private int color(String name) {
-    int n = res.getIdentifier(name, "color", State.SOURCE);
+    int n = resource(name, "color");
     return n == 0 ? 0 : source.getColor(n);
   }
 
   private boolean sourceColor(String name, int value) {
-    int n = res.getIdentifier(name, "color", State.SOURCE);
+    int n = resource(name, "color");
     if (n == 0) return false;
-    for (int mode : new int[] {Configuration.UI_MODE_NIGHT_NO, Configuration.UI_MODE_NIGHT_YES}) {
-      Configuration config = new Configuration(res.getConfiguration());
-      config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | mode;
-      if (source.createConfigurationContext(config).getColor(n) == value) return true;
+    int[] variants = sourceColorVariants.get(name);
+    if (variants == null) {
+      int[] modes = {Configuration.UI_MODE_NIGHT_NO, Configuration.UI_MODE_NIGHT_YES};
+      variants = new int[modes.length];
+      for (int i = 0; i < modes.length; i++) {
+        Configuration config = new Configuration(res.getConfiguration());
+        config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | modes[i];
+        variants[i] = source.createConfigurationContext(config).getColor(n);
+      }
+      sourceColorVariants.put(name, variants);
     }
-    return false;
+    return variants[0] == value || variants[1] == value;
   }
 
   private int px(float v) {
@@ -202,11 +239,25 @@ final class Appearance {
       Drawable candidate = source.getDrawable(r);
       if (candidate instanceof BitmapDrawable
           && shown.sameAs(((BitmapDrawable) candidate).getBitmap())) {
+        if (n.equals("ic_widget_tail") || n.equals("ic_widget_mxi_tail_off"))
+          rv.setImageViewBitmap(id(name), tailgateGlyph());
         tint(name);
         return;
       }
     }
     // Active, warning and animated icons retain the original provider's state colors.
+  }
+
+  private Bitmap tailgateGlyph() {
+    if (tailgateGlyph == null) {
+      // RemoteViews belongs to Li Auto: a local resource ID would resolve in that package.
+      Drawable glyph = local.getDrawable(R.drawable.preview_tailgate).mutate();
+      int edge = px(32);
+      tailgateGlyph = Bitmap.createBitmap(edge, edge, Bitmap.Config.ARGB_8888);
+      glyph.setBounds(0, 0, edge, edge);
+      glyph.draw(new Canvas(tailgateGlyph));
+    }
+    return tailgateGlyph;
   }
 
   private void translate() {
@@ -265,10 +316,79 @@ final class Appearance {
       int height,
       Freshness fresh)
       throws Exception {
-    return new Appearance(c, original, view, s, width, height, fresh).build();
+    return render(c, original, view, s, width, height, fresh, false);
   }
 
-  private RemoteViews build() {
+  static RemoteViews render(Context c, RemoteViews original, View view, WidgetStyle style,
+      int width, int height, Freshness fresh, boolean newReading) throws Exception {
+    return render(c, original, view, style, width, height, fresh, newReading, false);
+  }
+
+  static RemoteViews render(Context c, RemoteViews original, View view, WidgetStyle style,
+      int width, int height, Freshness fresh, boolean newReading, boolean chargeChanged) throws Exception {
+    if (!style.format.standard())
+      return VariantAppearance.render(c, original, view, style, width, height, fresh, chargeChanged);
+    return new Appearance(c, original, view, style, width, height, fresh).build(newReading, chargeChanged);
+  }
+
+  /** Retain the source PendingIntents and states; only restyle a selected row of its controls. */
+  static RemoteViews actionRow(Context c, RemoteViews original, View snapshot, WidgetStyle style,
+      int width, int height, int first, int last) throws Exception {
+    Appearance a = new Appearance(c, original, snapshot, style, width, height, new Freshness("", 0));
+    a.translate();
+    if (a.id("widget_buttons") == 0 || a.id("control_button4") == 0)
+      throw new IllegalStateException("Unsupported source controls");
+    for (String hidden : new String[] {"widget_header", "widget_content", "card_theme_background_2", "re_widget_login"})
+      a.hidden(hidden);
+    a.integer("ll_widget_car", "setBackgroundResource", 0);
+    a.padding("ll_widget_car", 0, 0, 0, 0);
+    a.height("ll_widget_car", height);
+    a.height("re_widget_content", height);
+    a.height("widget_buttons", height);
+    a.margin("widget_buttons", RemoteViews.MARGIN_LEFT, 0);
+    a.margin("widget_buttons", RemoteViews.MARGIN_RIGHT, 0);
+    a.margin("widget_buttons", RemoteViews.MARGIN_TOP, 0);
+    a.margin("widget_buttons", RemoteViews.MARGIN_BOTTOM, 0);
+    a.padding("widget_buttons", 0, 0, 0, 0);
+    a.integer("widget_buttons", "setBackgroundResource", 0);
+    for (int index = 3; index <= 5; index++) a.hidden("card_theme_background_" + index);
+    int glyph = height >= 70 ? 34 : height >= 56 ? 30 : 24;
+    int lines = height >= 74 ? 2 : 1;
+    float labelWidth = width / (float) (last - first + 1) - 8;
+    int shape = a.drawable("shape_widget_bg");
+    for (int index = 1; index <= 4; index++) {
+      String cell = "control_button" + index;
+      if (index < first || index > last) { a.hidden(cell); continue; }
+      a.height(cell, height);
+      a.margin(cell, RemoteViews.MARGIN_LEFT, 0);
+      a.margin(cell, RemoteViews.MARGIN_RIGHT, 0);
+      a.padding(cell, 4, 2, 4, 2);
+      String value = a.texts.getOrDefault("control_button_text" + index, "");
+      boolean confirm = value.equals(Language.text(a.local, R.string.action_confirm));
+      if (shape != 0) {
+        a.integer(cell, "setBackgroundResource", shape);
+        a.rv.setColorStateList(a.id(cell), "setBackgroundTintList", new ColorStateList(
+            new int[][] {new int[] {android.R.attr.state_pressed}, new int[] {android.R.attr.state_focused}, new int[] {}},
+            new int[] {a.colors.outline, a.colors.outline, confirm ? a.colors.confirmation : Color.TRANSPARENT}));
+      }
+      a.width("control_button_icon" + index, glyph);
+      a.height("control_button_icon" + index, glyph);
+      a.normalIcon("control_button_icon" + index);
+      float labelSize = Math.min(style.fontSize(), (height - glyph - 7)
+          / (1.25f * lines * c.getResources().getConfiguration().fontScale));
+      a.size("control_button_text" + index, a.fitLabel(value, labelSize, labelWidth));
+      a.integer("control_button_text" + index, "setMaxLines", lines);
+      a.integer("control_button_text" + index, "setMinLines", lines);
+      a.integer("control_button_text" + index, "setGravity", Gravity.CENTER);
+      a.margin("control_button_text" + index, RemoteViews.MARGIN_TOP, 3);
+      a.textColor("control_button_text" + index, confirm ? a.alarm : a.primary);
+      View button = snapshot.findViewById(a.id(cell));
+      if (button != null && !button.isEnabled()) a.rv.setFloat(a.id(cell), "setAlpha", .5f);
+    }
+    return a.rv;
+  }
+
+  private RemoteViews build(boolean newReading, boolean chargeChanged) {
     if (id("re_widget_content") == 0 || id("control_button1") == 0)
       throw new IllegalStateException("Unsupported source widget layout");
     translate();
@@ -278,25 +398,34 @@ final class Appearance {
         visible(snapshot.findViewById(id("widget_text")))
             ? texts.getOrDefault("widget_text", "")
             : "";
-    boolean hasMessage = !message.trim().isEmpty(),
-        showStatus = hasCar && (style.showTime || hasMessage);
+    long now = System.currentTimeMillis();
+    boolean hasMessage = !message.trim().isEmpty();
+    boolean stale = fresh.stale(now, style.staleMinutes);
+    ChargeReading charge = ChargeReading.read(local, snapshot);
+    boolean charging = charge != null && charge.charging;
+    boolean showStatus = hasCar && (style.showTime || hasMessage || charging);
+    int side = actionInset(widthDp);
+    float labelWidth = (widthDp - 2 * side - 3) / 4f - 6;
+    int lines = labelLines(labelWidth);
     int footer = hasMessage ? 36 : showStatus ? (compact ? 24 : 28) : 12;
     int controls =
         Math.max(
-            compact ? 72 : 76,
+            compact ? 64 : 68,
             4
                 * (int)
                     Math.ceil(
                         (44
-                                + 2.4
+                                + 1.25 * lines
                                     * sp(style.fontSize())
                                     / local.getResources().getDisplayMetrics().density)
                             / 4));
-    int top = compact ? 4 : 8, above = compact ? 0 : 6, below = compact ? 4 : 12;
-    int body = Math.max(24, heightDp - 8 - footer - top - 48 - above - below - controls);
-    int actualHeight = 8 + footer + top + 48 + above + below + controls + body;
+    int top = compact ? 4 : 6, above = compact ? 0 : 2, below = compact ? 4 : 8;
+    int header = compact ? 48 : DETAILED_HEADER_DP;
+    int body = Math.max(24, heightDp - 8 - footer - top - header - above - below - controls);
+    int actualHeight = 8 + footer + top + header + above + below + controls + body;
     boolean dense = heightDp < 192 || actualHeight > heightDp;
     if (dense) {
+      header = 48;
       footer = showStatus && heightDp >= 148 ? (hasMessage ? 32 : 22) : 0;
       controls = Math.min(76, Math.max(1, heightDp - 48 - 8 - footer));
       top = Math.max(0, heightDp - 48 - 8 - footer - controls);
@@ -309,13 +438,21 @@ final class Appearance {
         id("re_widget_content"), ViewGroup.LayoutParams.MATCH_PARENT, TypedValue.COMPLEX_UNIT_PX);
     height("re_widget_content", actualHeight - 8 - (hasCar ? footer : 0));
     padding("ll_widget_car", 0, 0, 0, 0);
-    height("widget_header", 48);
+    height("widget_header", header);
     margin("widget_header", RemoteViews.MARGIN_LEFT, 16);
     margin("widget_header", RemoteViews.MARGIN_RIGHT, 8);
     margin("widget_header", RemoteViews.MARGIN_TOP, top);
     width("widget_logo", 25);
     height("widget_logo", 11);
-    size("widget_vehicle_name", compact ? 16 : 18);
+    size("widget_vehicle_name", compact || dense ? 16 : detailedNameSize(style));
+    if (!compact && !dense) {
+      int nameId = id("widget_vehicle_name");
+      String name = texts.getOrDefault("widget_vehicle_name", "");
+      SpannableString styledName = new SpannableString(name);
+      styledName.setSpan(new TypefaceSpan("sans-serif-medium"), 0, name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      rv.setTextViewText(nameId, styledName);
+      integer("widget_vehicle_name", "setMaxLines", 2);
+    }
     hidden("widget_update_time");
     width("iv_widget_refresh", 48);
     height("iv_widget_refresh", 48);
@@ -355,44 +492,53 @@ final class Appearance {
     size("widget_battery_percent", 11);
     size("tv_widget_charge_desc", 11);
     integer("tv_widget_charge_desc", "setMaxLines", 2);
-    int side = widthDp < 300 ? 8 : 12, gap = widthDp < 300 ? 4 : 6;
     height("widget_buttons", controls);
     padding("widget_buttons", 0, 0, 0, 0);
     margin("widget_buttons", RemoteViews.MARGIN_LEFT, side);
     margin("widget_buttons", RemoteViews.MARGIN_RIGHT, side);
-    for (int i = 2; i <= 5; i++) hidden("card_theme_background_" + i);
     int originalShape = drawable("shape_widget_bg");
+    if (originalShape != 0) {
+      integer("widget_buttons", "setBackgroundResource", originalShape);
+      rv.setColorStateList(id("widget_buttons"), "setBackgroundTintList", ColorStateList.valueOf(colors.panel));
+    }
+    hidden("card_theme_background_2");
+    for (int i = 3; i <= 5; i++) {
+      String divider = "card_theme_background_" + i;
+      int dividerId = id(divider);
+      if (dividerId == 0) continue;
+      rv.setViewVisibility(dividerId, View.VISIBLE);
+      integer(divider, "setBackgroundColor", colors.outline);
+      width(divider, 1);
+      height(divider, 24);
+    }
+    int glyph = dense && controls < 68 ? (controls < 56 ? 24 : 28) : 32;
+    float labelSize = dense
+        ? Math.min(style.fontSize(), (controls - glyph - 8)
+            / (1.25f * lines * local.getResources().getConfiguration().fontScale))
+        : style.fontSize();
     for (int i = 1; i <= 4; i++) {
       String n = "control_button" + i, value = texts.getOrDefault("control_button_text" + i, "");
       boolean confirm = value.equals(Language.text(local, R.string.action_confirm));
       height(n, controls);
-      padding(n, 2, dense ? 2 : 4, 2, dense ? 2 : 4);
-      if (i < 4) margin(n, RemoteViews.MARGIN_RIGHT, gap);
+      padding(n, 3, 2, 3, 2);
       if (originalShape != 0) {
         integer(n, "setBackgroundResource", originalShape);
         rv.setColorStateList(
             id(n),
             "setBackgroundTintList",
-            ColorStateList.valueOf(confirm ? colors.confirmation : colors.panel));
+            new ColorStateList(
+                new int[][] {new int[] {android.R.attr.state_pressed},
+                    new int[] {android.R.attr.state_focused}, new int[] {}},
+                new int[] {colors.outline, colors.outline, confirm ? colors.confirmation : Color.TRANSPARENT}));
       }
-      int glyph = dense && controls < 68 ? 24 : 32;
-      float labelSize =
-          dense
-              ? Math.min(
-                  style.fontSize(),
-                  (controls - glyph - 6)
-                      / (2.4f * local.getResources().getConfiguration().fontScale))
-              : style.fontSize();
       width("control_button_icon" + i, glyph);
       height("control_button_icon" + i, glyph);
       normalIcon("control_button_icon" + i);
-      size(
-          "control_button_text" + i,
-          fitLabel(value, labelSize, (widthDp - 2 * side - 3 * gap) / 4f - 4));
-      integer("control_button_text" + i, "setMaxLines", 2);
-      integer("control_button_text" + i, "setMinLines", 2);
+      size("control_button_text" + i, fitLabel(value, labelSize, labelWidth));
+      integer("control_button_text" + i, "setMaxLines", lines);
+      integer("control_button_text" + i, "setMinLines", lines);
       integer("control_button_text" + i, "setGravity", Gravity.CENTER);
-      margin("control_button_text" + i, RemoteViews.MARGIN_TOP, dense ? 2 : 4);
+      margin("control_button_text" + i, RemoteViews.MARGIN_TOP, 3);
       textColor("control_button_text" + i, confirm ? alarm : button);
       View original = snapshot.findViewById(id(n));
       if (original != null && !original.isEnabled()) rv.setFloat(id(n), "setAlpha", .5f);
@@ -443,6 +589,11 @@ final class Appearance {
       width("tv_widget_login", Math.max(1, widthDp - 32));
     }
     RemoteViews shell = new RemoteViews(local.getPackageName(), R.layout.widget_shell);
+    boolean motion = WidgetMotion.enabled(style);
+    boolean movingAvatar = hasCar && !compact && !dense && addAvatar(shell, top, header,
+        motion && style.motion.equals("avatar"));
+    shell.setViewVisibility(R.id.avatar_motion, movingAvatar ? View.VISIBLE : View.GONE);
+    if (!movingAvatar) shell.setImageViewBitmap(R.id.animated_avatar, null);
     shell.setInt(R.id.shell, "setBackgroundResource", colors.surfaceRes);
     shell.setViewLayoutHeight(R.id.shell, actualHeight, TypedValue.COMPLEX_UNIT_DIP);
     shell.setViewVisibility(R.id.empty, View.GONE);
@@ -451,20 +602,60 @@ final class Appearance {
         R.id.source_slot, actualHeight - 8 - (hasCar ? footer : 0), TypedValue.COMPLEX_UNIT_DIP);
     shell.removeAllViews(R.id.source_slot);
     shell.addView(R.id.source_slot, rv);
-    shell.setViewVisibility(R.id.status_row, showStatus && footer > 0 ? View.VISIBLE : View.GONE);
+    boolean footerVisible = showStatus && footer > 0;
+    shell.setViewVisibility(R.id.status_row, footerVisible ? View.VISIBLE : View.GONE);
     shell.setViewLayoutHeight(R.id.status_row, footer, TypedValue.COMPLEX_UNIT_DIP);
     if (dense) {
       shell.setTextViewTextSize(R.id.status_text, TypedValue.COMPLEX_UNIT_SP, 10);
       shell.setTextViewTextSize(R.id.status_dot, TypedValue.COMPLEX_UNIT_SP, 14);
     }
-    boolean stale = fresh.stale(System.currentTimeMillis(), style.staleMinutes);
     int stateColor = hasMessage || stale ? alarm : secondary;
-    shell.setTextViewText(
-        R.id.status_text,
-        hasMessage ? message : fresh.text(local, System.currentTimeMillis(), style.staleMinutes));
+    String status = hasMessage ? message : fresh.text(local, now, style.staleMinutes);
+    if (footerVisible && charging) {
+      String chargingLabel = Language.text(local, R.string.widget_charging);
+      status = style.showTime ? chargingLabel + " · " + status : chargingLabel;
+      int boltColor = colors.chargeAccent;
+      shell.setInt(R.id.charge_bolt, "setColorFilter", stale ? secondary : boltColor);
+    }
+    shell.setViewVisibility(R.id.status_dot, footerVisible && charging ? View.GONE : View.VISIBLE);
+    shell.setViewVisibility(R.id.charge_motion, footerVisible && charging ? View.VISIBLE : View.GONE);
+    if (footerVisible && charging && motion && chargeChanged)
+      shell.setDisplayedChild(R.id.charge_motion, 0);
+    shell.setTextViewText(R.id.status_text, status);
     shell.setTextColor(R.id.status_text, stateColor);
     shell.setTextColor(R.id.status_dot, stateColor);
+    if (newReading && motion && hasCar && !hasMessage && !stale && !charging) {
+      if (movingAvatar) shell.setDisplayedChild(R.id.avatar_motion, 0);
+      else if (footerVisible) shell.setDisplayedChild(R.id.status_motion, 0);
+    }
     return shell;
+  }
+
+  private boolean addAvatar(RemoteViews shell, int top, int header, boolean moving) {
+    int logo = id("widget_logo");
+    if (logo == 0) return false;
+    Bitmap avatar = WidgetAvatar.icon(local, style.avatar);
+    if (avatar == null) return false;
+    int side = widthDp < 280 ? 38 : 44;
+    width("widget_logo", side);
+    height("widget_logo", side);
+    margin("widget_logo", RemoteViews.MARGIN_RIGHT, 9);
+    hidden("card_theme_background_1");
+    if (moving) {
+      rv.setViewVisibility(logo, View.INVISIBLE);
+      shell.setViewLayoutWidth(R.id.avatar_motion, side, TypedValue.COMPLEX_UNIT_DIP);
+      shell.setViewLayoutHeight(R.id.avatar_motion, side, TypedValue.COMPLEX_UNIT_DIP);
+      shell.setViewLayoutMargin(R.id.avatar_motion, RemoteViews.MARGIN_LEFT, 16, TypedValue.COMPLEX_UNIT_DIP);
+      shell.setViewLayoutMargin(R.id.avatar_motion, RemoteViews.MARGIN_TOP, top + (header - side) / 2f,
+          TypedValue.COMPLEX_UNIT_DIP);
+      shell.setImageViewBitmap(R.id.animated_avatar, avatar);
+    } else {
+      rv.setImageViewBitmap(logo, avatar);
+      rv.setColorStateList(logo, "setImageTintList", (ColorStateList) null);
+      // The source uses SRC_ATOP on this ImageView. Transparent clears our icon color filter.
+      rv.setInt(logo, "setColorFilter", Color.TRANSPARENT);
+    }
+    return moving;
   }
 
   private void compactHeader(String message, boolean inlineStatus) {
