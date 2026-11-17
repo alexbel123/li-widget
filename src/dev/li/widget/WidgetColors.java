@@ -10,7 +10,7 @@ import java.util.Arrays;
 final class WidgetColors {
   final boolean dark, black, dynamic, glass, highContrast;
   final int background, panel, primary, secondary, icon, outline, surfaceRes, warning, confirmation;
-  final int accent, onAccent, accentContainer, onAccentContainer, chargeAccent;
+  final int accent, onAccent, accentContainer, onAccentContainer, chargeAccent, actionDivider;
 
   WidgetColors(Context c, WidgetStyle style) {
     dark = style.dark(c);
@@ -81,6 +81,7 @@ final class WidgetColors {
     secondary = muted;
     icon = glyph;
     outline = border;
+    actionDivider = mix(border, glyph, .18f);
     accent = readable(accentColor, background);
     onAccent = readable(accentInk, accent);
     accentContainer = accentFill;
@@ -102,7 +103,7 @@ final class WidgetColors {
 
   int signature() {
     return Arrays.hashCode(
-        new int[] {background, panel, primary, secondary, icon, outline, surfaceRes,
+        new int[] {background, panel, primary, secondary, icon, outline, actionDivider, surfaceRes,
             accent, onAccent, accentContainer, onAccentContainer, highContrast ? 1 : 0});
   }
 

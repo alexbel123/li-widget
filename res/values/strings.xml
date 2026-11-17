@@ -4,7 +4,6 @@
     <string name="motion_fade">Update line</string>
     <string name="motion_avatar">Vehicle avatar</string>
     <string name="motion_off">Off</string>
-    <string name="motion_hint">The avatar moves in the large widget. The bolt briefly pulses when the charge percentage or remaining charge time changes.</string>
     <string name="widget_charging">Charging</string>
     <string name="sample_widget_badge">Sample</string>
     <string name="sample_km">km</string>

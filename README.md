@@ -11,7 +11,7 @@
 
 **Неофициальный компаньон для штатного виджета Li Auto.** Настраивает оформление и переводит известные подписи, сохраняя оригинальные кнопки и их обработчики. Оригинальное приложение Li Auto должно быть установлено отдельно.
 
-## Скачать 1.0 · сборка 18
+## Скачать 1.0 · сборка 19
 
 **[Установить APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Скачать ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [Все файлы релиза](https://github.com/alexbel123/li-widget/releases/latest)
 
@@ -24,7 +24,7 @@ ZIP содержит тот же APK, краткую инструкцию и е�
 <tr><td>Избранное · 2×2</td><td><img src="docs/images/favorites_grid-light-ru.png" width="240" alt="Избранное · 2×2, light"></td><td><img src="docs/images/favorites_grid-dim-ru.png" width="240" alt="Избранное · 2×2, dark"></td></tr>
 </table>
 
-*Реальная нативная отрисовка сборки 18 в эмуляторе Android. Числа — тестовые, без данных владельца. Интерфейс также доступен на английском. [Все семь форматов и меню выбора →](docs/WIDGETS.md)*
+*Реальная нативная отрисовка сборки 19 в эмуляторе Android. Числа — тестовые, без данных владельца. Интерфейс также доступен на английском. [Все семь форматов и меню выбора →](docs/WIDGETS.md)*
 
 ## Возможности
 

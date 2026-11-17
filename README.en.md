@@ -5,7 +5,7 @@
 
 **An unofficial companion for the original Li Auto widget.** Customize its appearance and translate known labels while keeping the original controls and their handlers. The original Li Auto app must be installed separately.
 
-## Download 1.0 · build 18
+## Download 1.0 · build 19
 
 **[Download APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Download ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [All release files](https://github.com/alexbel123/li-widget/releases/latest)
 
@@ -18,7 +18,7 @@ The ZIP contains the same APK, installation notes and its checksum. Browse the s
 <tr><td>Favorites · 2×2</td><td><img src="docs/images/favorites_grid-light-ru.png" width="240" alt="Favorites · 2×2, light"></td><td><img src="docs/images/favorites_grid-dim-ru.png" width="240" alt="Favorites · 2×2, dark"></td></tr>
 </table>
 
-*Actual native rendering of build 18 on an Android emulator, with synthetic readings and no owner data. The UI also supports English. [All seven formats and the format picker](docs/WIDGETS.md).*
+*Actual native rendering of build 19 on an Android emulator, with synthetic readings and no owner data. The UI also supports English. [All seven formats and the format picker](docs/WIDGETS.md).*
 
 ## Features
 

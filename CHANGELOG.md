@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0 · build 19 — 2026-11-17
+
+Android `versionName` remains **1.0**; `versionCode` is **19**. Release tag: `v1.0-build19`.
+
+- Fixed a startup crash when an unbound Minimal, Range or Charging preview was selected, including after removing the last home-screen widget. Their FrameLayout previews are now returned as View instead of being cast to LinearLayout.
+- Made the thin button dividers clearer in Overview, Large and both Favorites formats. Favorites 2×2 also separates its rows. Minimum touch targets and original Li Auto actions are retained.
+- Removed the explanatory paragraph from the Animation setting in both languages.
+- Replaced paint-tinted avatar backgrounds with neutral light or graphite backgrounds selected for contrast with the body and roof. Imported photos keep their original appearance.
+- Passed 82 native widget renders and interaction checks, 56 unbound-preview cases and checks for every catalog paint. Startup without a home-screen widget was confirmed on a physical Galaxy S24 Ultra.
+
+[Verification](docs/VERIFICATION.md) · [Widget behavior](docs/WIDGETS.md).
+
 ## 1.0 · build 18 — 2026-11-17
 
 Android `versionName` remains **1.0**; `versionCode` is **18**. Release tag: `v1.0-build18`.

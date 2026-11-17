@@ -14,7 +14,7 @@ final class SampleWidget {
   static final int[] ACTION_ICONS = {R.drawable.preview_lock, R.drawable.preview_climate, R.drawable.preview_tailgate, R.drawable.preview_move};
   static final int[] ACTION_NAMES = {R.string.action_locks, R.string.action_climate, R.string.action_tailgate, R.string.action_move};
 
-  static LinearLayout create(Context context, WidgetStyle style, int width, int height) {
+  static View create(Context context, WidgetStyle style, int width, int height) {
     if (!style.format.standard()) return special(context, style, width, height);
     WidgetColors colors = new WidgetColors(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
@@ -67,11 +67,12 @@ final class SampleWidget {
     LinearLayout controls = new LinearLayout(context);
     controls.setGravity(Gravity.CENTER_VERTICAL);
     controls.setBackground(ui.solid(colors.panel, 16, 0));
+    int controlsHeight = compact ? (height < 132 ? 52 : 57) : 66;
     for (int index = 0; index < ACTION_NAMES.length; index++) {
       if (index > 0) {
         View line = new View(context);
-        line.setBackgroundColor(colors.outline);
-        controls.addView(line, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(24)));
+        line.setBackgroundColor(colors.actionDivider);
+        controls.addView(line, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(Appearance.actionDividerHeight(controlsHeight))));
       }
       LinearLayout tile = ui.column();
       tile.setGravity(Gravity.CENTER);
@@ -89,7 +90,7 @@ final class SampleWidget {
       tile.addView(label, textLayout);
       controls.addView(tile, new LinearLayout.LayoutParams(0, -1, 1));
     }
-    sample.addView(controls, new LinearLayout.LayoutParams(-1, ui.dp(compact ? (height < 132 ? 52 : 57) : 66)));
+    sample.addView(controls, new LinearLayout.LayoutParams(-1, ui.dp(controlsHeight)));
     if (style.showTime && height >= 148) {
       TextView update = ui.text(Language.text(context, R.string.sample_update), 11, colors.secondary, false);
       update.setId(R.id.status_text);
@@ -100,20 +101,36 @@ final class SampleWidget {
     return sample;
   }
 
-  private static LinearLayout special(Context context, WidgetStyle style, int width, int height) {
+  private static View special(Context context, WidgetStyle style, int width, int height) {
     if (!style.format.favorites())
-      return (LinearLayout) VariantAppearance.sample(context, style, width, height)
+      return VariantAppearance.sample(context, style, width, height)
           .apply(context, new android.widget.FrameLayout(context));
     WidgetColors colors = new WidgetColors(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
     LinearLayout root = ui.column();
     root.setBackgroundResource(colors.surfaceRes);
-    root.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), ui.dp(6));
     int rows = style.format == WidgetFormat.FAVORITES_GRID ? 2 : 1;
+    int separator = rows - 1;
+    int pad = Math.min(6, Math.max(0, (height - rows * 48 - separator) / 2));
+    int rowHeight = Math.max(1, (height - 2 * pad - separator) / rows);
+    root.setPadding(ui.dp(4), ui.dp(pad), ui.dp(4), ui.dp(pad));
     for (int r = 0; r < rows; r++) {
+      if (r > 0) {
+        View line = new View(context);
+        line.setBackgroundColor(colors.actionDivider);
+        LinearLayout.LayoutParams rule = new LinearLayout.LayoutParams(-1, ui.dp(1));
+        rule.setMargins(ui.dp(12), 0, ui.dp(12), 0);
+        root.addView(line, rule);
+      }
       LinearLayout row = new LinearLayout(context);
+      row.setGravity(Gravity.CENTER_VERTICAL);
       int count = 4 / rows;
       for (int i = r * count; i < (r + 1) * count; i++) {
+        if (i > r * count) {
+          View line = new View(context);
+          line.setBackgroundColor(colors.actionDivider);
+          row.addView(line, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(Appearance.actionDividerHeight(rowHeight))));
+        }
         LinearLayout tile = ui.column();
         tile.setGravity(Gravity.CENTER);
         ImageView icon = new ImageView(context);
@@ -129,7 +146,7 @@ final class SampleWidget {
         tile.addView(name, label);
         row.addView(tile, new LinearLayout.LayoutParams(0, -1, 1));
       }
-      root.addView(row, new LinearLayout.LayoutParams(-1, ui.dp((height - 12) / rows)));
+      root.addView(row, new LinearLayout.LayoutParams(-1, ui.dp(rowHeight)));
     }
     return root;
   }

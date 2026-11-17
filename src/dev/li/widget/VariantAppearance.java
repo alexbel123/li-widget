@@ -109,15 +109,18 @@ final class VariantAppearance {
     WidgetColors colors = new WidgetColors(c, style);
     RemoteViews views = base(c, style, R.layout.widget_actions, height, colors);
     int rows = style.format == WidgetFormat.FAVORITES_GRID ? 2 : 1;
-    int footer = message.isEmpty() ? 0 : Math.min(16, Math.max(0, height - 48 * rows));
-    int pad = Math.min(6, Math.max(0, (height - footer - rows * 48) / 2));
-    int rowHeight = Math.max(1, (height - 2 * pad - footer) / rows);
+    int separator = rows - 1;
+    int footer = message.isEmpty() ? 0 : Math.min(16, Math.max(0, height - 48 * rows - separator));
+    int pad = Math.min(6, Math.max(0, (height - footer - rows * 48 - separator) / 2));
+    int rowHeight = Math.max(1, (height - 2 * pad - footer - separator) / rows);
     views.setViewPadding(R.id.variant_root, dp(c, 4), dp(c, pad), dp(c, 4), dp(c, pad));
     views.setViewLayoutHeight(R.id.actions_first, rowHeight, TypedValue.COMPLEX_UNIT_DIP);
     views.removeAllViews(R.id.actions_first);
     views.addView(R.id.actions_first, Appearance.actionRow(c, original, snapshot, style,
         Math.max(1, width - 8), rowHeight, 1, rows == 2 ? 2 : 4));
     views.setViewVisibility(R.id.actions_second, rows == 2 ? View.VISIBLE : View.GONE);
+    views.setViewVisibility(R.id.actions_divider, rows == 2 ? View.VISIBLE : View.GONE);
+    views.setInt(R.id.actions_divider, "setBackgroundColor", colors.actionDivider);
     views.removeAllViews(R.id.actions_second);
     if (rows == 2) {
       views.setViewLayoutHeight(R.id.actions_second, rowHeight, TypedValue.COMPLEX_UNIT_DIP);

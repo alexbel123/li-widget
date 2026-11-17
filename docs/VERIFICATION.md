@@ -2,7 +2,24 @@
 
 Проверка относится к компаньону dev.li.widget. Оригинальный APK Li Auto не изменялся и не включён в релиз.
 
-## Публичный релиз: сборка 18
+## Публичный релиз: сборка 19
+
+Версия **1.0**, `versionCode` **19**, Android 12+ / target API 36. Подпись сохранена.
+
+- Исправлено приведение FrameLayout к LinearLayout в неподключённых образцах. Пройдены **56 проверок образца**: семь форматов, RU/EN, светлая/тёмная темы, обычные и минимальные размеры со шрифтом 1.3.
+- Пройдены **82 нативные отрисовки**, повторное применение RemoteViews, касания в прикреплённом окне, регистрация семи провайдеров, сохранение исходных тестовых обработчиков, подтверждений и отключённых действий. Разделители не уменьшают области кнопок ниже **48×48 dp**.
+- Проверены нейтральность фона, прозрачность углов и контраст кузова/крыши у всех **36 вариантов окраски**. В документации опубликованы нативные изображения с тестовыми данными.
+- Описание пункта «Анимация» удалено в RU/EN; остальная компоновка настроек сохранена.
+- Запуск без виджетов проверен на физическом **Samsung Galaxy S24 Ultra, Android 17 / API 37**. Пользователь подтвердил открытие приложения после удаления последнего виджета. Данные приложения при обновлении сохранены.
+- По **203 строки** каждого языка; XML, локальные ссылки, маркеры приватных данных, состав APK, подпись и выравнивание проверены. Ключ подписи, частные журналы телефона и тестовый APK не публикуются.
+
+SHA-256 APK: `1fcd26589e169cae9b3a45c886b701f8719a7a345eea1da7a1ad052ef3a939b4`.
+
+SHA-256 сертификата: `8059d47d6463e65219722718ad63e64f1d985641d08b0500e5bdd0278ce8629c`.
+
+Функциональные проверки виджетов: Android 16 / API 36, эмулятор, синтетические показания и локальные тестовые PendingIntent. Реальные команды автомобилю в этих тестах не отправлялись; расход батареи и все сторонние лаунчеры не измерялись. Получение времени зарядки сохранено. Дополнительная вибрация на короткое нажатие не добавлена.
+
+## Предыдущий релиз: сборка 18
 
 Версия **1.0**, `versionCode` **18**, Android 12+ / target API 36. Подпись сохранена от предыдущего релиза.
 
@@ -112,7 +129,9 @@ SHA-256 сертификата подписи: `8059d47d6463e65219722718ad63e64f
 
 ## English summary
 
-Current public release: **1.0, build 18**, signed with the existing release certificate. **82 native renders** passed, including RU/EN, light/dark and minimum dimensions with larger system text. Attached-window touch events verified original refresh callbacks, independent 48×48 dp settings targets including Charging at minimum height, and the original compact header handlers. The electricity/fuel ImageViews survive Parcel/reapply. Disabled and missing-refresh cases were checked. The production settings UI hides button-label sizing in all three formats without a control panel. All seven providers were registered and bound by Android, and both languages contain 204 matching resource keys.
+Current public release: **1.0, build 19**, with the existing release signature. Passed **82 native renders**, **56 unbound-preview cases** and contrast/transparency checks for all **36 catalog paints**. Button dividers preserve 48×48 dp touch targets and original test callbacks. The Animation description is removed; both languages have 203 matching keys. The no-widget startup fix was confirmed on a physical Galaxy S24 Ultra running Android 17 / API 37. Widget checks use synthetic values and dummy callbacks on Android API 36; vehicle response, battery usage and all third-party launchers remain outside this validation. No additional tap vibration is implemented.
+
+Previous public release: **1.0, build 18**, signed with the existing release certificate. **82 native renders** passed, including RU/EN, light/dark and minimum dimensions with larger system text. Attached-window touch events verified original refresh callbacks, independent 48×48 dp settings targets including Charging at minimum height, and the original compact header handlers. The electricity/fuel ImageViews survive Parcel/reapply. Disabled and missing-refresh cases were checked. The production settings UI hides button-label sizing in all three formats without a control panel. All seven providers were registered and bound by Android, and both languages contain 204 matching resource keys.
 
 The checks used synthetic source readings and local dummy callbacks on Android API 36. No real vehicle command was sent. The release checks, signing certificate and alignment passed. Physical phones, other launchers, vehicle response and battery usage were not tested separately for this build. Charging-time interpretation remains unchanged.
 

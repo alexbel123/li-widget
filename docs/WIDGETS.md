@@ -30,6 +30,10 @@ In Li Widget, choose New widget → Style → Widget type → Add widget, or use
 
 In build 18, tap Minimal, Range or Charging to invoke the original Li Auto refresh handler. A small refresh arrow accompanies the update-age line; it does not imply that the vehicle has already responded. Disabled or missing source actions remain unavailable. The Range and Charging settings icon has a separate 48×48 dp target. For Minimal and tightly resized Range, use the app or the launcher widget editor to configure appearance. In-app previews do not dispatch actions.
 
+В сборке 19 тонкие разделители яснее обозначают соседние кнопки; в «Избранном 2×2» разделены и ряды. Минимальные области нажатия сохраняются. Штатный щелчок зависит от настроек звуков касания и лаунчера Android. Дополнительная вибрация на нажатие не реализована: исходные обработчики Li Auto вызываются напрямую.
+
+Build 19 makes the thin control dividers clearer and also separates Favorites 2×2 rows, preserving minimum touch targets. Native click sound follows Android touch-sound settings and launcher behavior. Additional tap vibration is not implemented; original Li Auto handlers are invoked directly.
+
 ## Данные и кнопки / Data and controls
 
 Все значения берутся из текущего штатного виджета Li Auto. Если при зарядке исходное поле запаса хода заменено процентом, вместо недоступного запаса хода отображается «—». Скрытые значения не подставляются из старого снимка. Получение и перевод времени зарядки используют прежний механизм; отдельного расчёта времени нет.
@@ -42,7 +46,7 @@ All readings come from the current original widget. Unavailable or hidden range 
 
 Sample values are confined to the unconnected editor preview. An unconnected home-screen widget shows a connection prompt.
 
-## Снимки сборки 18 / Build 18 screenshots
+## Снимки сборки 19 / Build 19 screenshots
 
 Настоящие RemoteViews установленного APK, отрисованные в эмуляторе Android с синтетическими показаниями. Это не изображения-концепции. Исходные значки и доступность действий при подключении определяет Li Auto.
 

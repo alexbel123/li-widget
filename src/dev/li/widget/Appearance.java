@@ -21,6 +21,7 @@ final class Appearance {
   }
 
   static int actionInset(int width) { return width < 300 ? 8 : 12; }
+  static int actionDividerHeight(int rowHeight) { return Math.max(1, Math.min(36, rowHeight - 16)); }
   private final Context local, source;
   private final Resources res;
   private final RemoteViews rv;
@@ -345,10 +346,10 @@ final class Appearance {
     a.margin("widget_buttons", RemoteViews.MARGIN_BOTTOM, 0);
     a.padding("widget_buttons", 0, 0, 0, 0);
     a.integer("widget_buttons", "setBackgroundResource", 0);
-    for (int index = 3; index <= 5; index++) a.hidden("card_theme_background_" + index);
+    a.actionDividers(first, last, height);
     int glyph = height >= 70 ? 34 : height >= 56 ? 30 : 24;
     int lines = height >= 74 ? 2 : 1;
-    float labelWidth = width / (float) (last - first + 1) - 8;
+    float labelWidth = (width - (last - first)) / (float) (last - first + 1) - 8;
     int shape = a.drawable("shape_widget_bg");
     for (int index = 1; index <= 4; index++) {
       String cell = "control_button" + index;
@@ -380,6 +381,18 @@ final class Appearance {
       if (button != null && !button.isEnabled()) a.rv.setFloat(a.id(cell), "setAlpha", .5f);
     }
     return a.rv;
+  }
+
+  private void actionDividers(int first, int last, int rowHeight) {
+    for (int preceding = 1; preceding <= 3; preceding++) {
+      String name = "card_theme_background_" + (preceding + 2);
+      int dividerId = id(name);
+      if (dividerId == 0) continue;
+      rv.setViewVisibility(dividerId, preceding >= first && preceding < last ? View.VISIBLE : View.GONE);
+      integer(name, "setBackgroundColor", colors.actionDivider);
+      width(name, 1);
+      height(name, actionDividerHeight(rowHeight));
+    }
   }
 
   /** Preserve the source refresh PendingIntent, including its disabled state, without extracting it. */
@@ -523,15 +536,7 @@ final class Appearance {
       rv.setColorStateList(id("widget_buttons"), "setBackgroundTintList", ColorStateList.valueOf(colors.panel));
     }
     hidden("card_theme_background_2");
-    for (int i = 3; i <= 5; i++) {
-      String divider = "card_theme_background_" + i;
-      int dividerId = id(divider);
-      if (dividerId == 0) continue;
-      rv.setViewVisibility(dividerId, View.VISIBLE);
-      integer(divider, "setBackgroundColor", colors.outline);
-      width(divider, 1);
-      height(divider, 24);
-    }
+    actionDividers(1, 4, controls);
     int glyph = dense && controls < 68 ? (controls < 56 ? 24 : 28) : 32;
     float labelSize = dense
         ? Math.min(style.fontSize(), (controls - glyph - 8)

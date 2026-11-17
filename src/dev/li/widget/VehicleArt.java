@@ -74,11 +74,23 @@ final class VehicleArt {
     Bitmap icon = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
     Canvas canvas = new Canvas(icon);
     Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    // Neutral backdrops keep the paint color legible without tinting it. Consider both
+    // body and roof so the two-tone options retain contrast as well.
+    int light = 0xffe8e8e8, dark = 0xff303030;
+    double onLight = Math.min(WidgetColors.contrast(option.body, light), WidgetColors.contrast(option.upper, light));
+    double onDark = Math.min(WidgetColors.contrast(option.body, dark), WidgetColors.contrast(option.upper, dark));
+    boolean lightBackdrop = onLight >= onDark;
     paint.setShader(new RadialGradient(size * .37f, size * .3f, size * .76f,
-        Color.rgb(78 + Color.red(option.body) / 5, 86 + Color.green(option.body) / 5, 91 + Color.blue(option.body) / 5),
-        0xff26343a, Shader.TileMode.CLAMP));
+        lightBackdrop ? 0xfff7f7f7 : dark,
+        lightBackdrop ? light : 0xff181818, Shader.TileMode.CLAMP));
     canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint);
     paint.setShader(null);
+    float stroke = Math.max(1f, size / 96f);
+    paint.setStyle(Paint.Style.STROKE);
+    paint.setStrokeWidth(stroke);
+    paint.setColor(lightBackdrop ? 0xffcccccc : 0xff565656);
+    canvas.drawCircle(size / 2f, size / 2f, (size - stroke) / 2f, paint);
+    paint.setStyle(Paint.Style.FILL);
     Bitmap car = car(context, option);
     float w = size * .91f, h = w * car.getHeight() / car.getWidth();
     canvas.drawBitmap(car, null, new RectF((size - w) / 2, (size - h) / 2, (size + w) / 2, (size + h) / 2), paint);

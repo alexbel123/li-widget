@@ -4,7 +4,6 @@
     <string name="motion_fade">Строка обновления</string>
     <string name="motion_avatar">Аватар машины</string>
     <string name="motion_off">Выключена</string>
-    <string name="motion_hint">Аватар движется в большом виджете. Молния коротко пульсирует при изменении процента или оставшегося времени зарядки.</string>
     <string name="widget_charging">Зарядка</string>
     <string name="sample_widget_badge">Образец</string>
     <string name="sample_km">км</string>

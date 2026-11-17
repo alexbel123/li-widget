@@ -464,7 +464,7 @@ public class MainActivity extends Activity {
     String[] motionNames = style.format.standard() ? new String[] {t(R.string.motion_fade), t(R.string.motion_avatar), t(R.string.motion_off)}
         : new String[] {t(R.string.motion_fade), t(R.string.motion_off)};
     int selectedMotion = Math.max(0, Arrays.asList(motionModes).indexOf(style.motion));
-    entry(card, null, t(R.string.editor_motion), t(R.string.motion_hint), motionNames[selectedMotion],
+    entry(card, null, t(R.string.editor_motion), null, motionNames[selectedMotion],
         () -> pick(t(R.string.editor_motion), motionNames, selectedMotion, index -> {
           style.motion = motionModes[index];
           save(true);
