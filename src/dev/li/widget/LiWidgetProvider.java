@@ -16,7 +16,7 @@ public class LiWidgetProvider extends AppWidgetProvider {
 
   static RemoteViews empty(Context c, int id, String title, String message, int availableHeight) {
     WidgetStyle style = WidgetStyle.read(c, id);
-    WidgetColors colors = new WidgetColors(c, style);
+    WidgetColors colors = WidgetColors.forWidget(c, style);
     RemoteViews r = new RemoteViews(c.getPackageName(), R.layout.widget_shell);
     int height = style.heightWithin(availableHeight);
     boolean shortView =

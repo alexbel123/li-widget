@@ -2,7 +2,17 @@
 
 Проверка относится к компаньону dev.li.widget. Оригинальный APK Li Auto не изменялся и не включён в релиз.
 
-## Публичный релиз: сборка 19
+## Публичный релиз: сборка 20
+
+Версия **1.0**, `versionCode` **20**, Android 12+ / target API 36.
+
+- В эмуляторе Android 16 проверена отрисовка светлого «Стекла» во всех семи форматах. Универсальный виджет также проверен со второй системной палитрой и в тёмном режиме.
+- Проверены панель кнопок, фон образца в редакторе и контраст мелкого текста в самом тёмном участке светлого градиента на чёрной подложке.
+- Проверены состав APK, выравнивание и совместимость подписи с предыдущей сборкой.
+
+SHA-256 APK: `dcbe659aa6b681a1be8d6f2b41a7e6fc5ce8c8490c66d63567c14b7e12a1b9f0`.
+
+## Предыдущий релиз: сборка 19
 
 Версия **1.0**, `versionCode` **19**, Android 12+ / target API 36. Подпись сохранена.
 
@@ -129,7 +139,9 @@ SHA-256 сертификата подписи: `8059d47d6463e65219722718ad63e64f
 
 ## English summary
 
-Current public release: **1.0, build 19**, with the existing release signature. Passed **82 native renders**, **56 unbound-preview cases** and contrast/transparency checks for all **36 catalog paints**. Button dividers preserve 48×48 dp touch targets and original test callbacks. The Animation description is removed; both languages have 203 matching keys. The no-widget startup fix was confirmed on a physical Galaxy S24 Ultra running Android 17 / API 37. Widget checks use synthetic values and dummy callbacks on Android API 36; vehicle response, battery usage and all third-party launchers remain outside this validation. No additional tap vibration is implemented.
+Current public release: **1.0, build 20**, with the existing release signature. The Android 16 emulator rendered light Glass in all seven formats. The overview also passed on a second system palette and in system dark mode. The checks covered the panel tint, the editor preview and small text contrast.
+
+Previous public release: **1.0, build 19**, with the existing release signature. Passed **82 native renders**, **56 unbound-preview cases** and contrast/transparency checks for all **36 catalog paints**. Button dividers preserve 48×48 dp touch targets and original test callbacks. The Animation description is removed; both languages have 203 matching keys. The no-widget startup fix was confirmed on a physical Galaxy S24 Ultra running Android 17 / API 37. Widget checks use synthetic values and dummy callbacks on Android API 36; vehicle response, battery usage and all third-party launchers remain outside this validation. No additional tap vibration is implemented.
 
 Previous public release: **1.0, build 18**, signed with the existing release certificate. **82 native renders** passed, including RU/EN, light/dark and minimum dimensions with larger system text. Attached-window touch events verified original refresh callbacks, independent 48×48 dp settings targets including Charging at minimum height, and the original compact header handlers. The electricity/fuel ImageViews survive Parcel/reapply. Disabled and missing-refresh cases were checked. The production settings UI hides button-label sizing in all three formats without a control panel. All seven providers were registered and bound by Android, and both languages contain 204 matching resource keys.
 

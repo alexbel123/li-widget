@@ -50,7 +50,7 @@ final class Appearance {
     dark = s.dark(c);
     widthDp = Math.max(1, w);
     heightDp = s.heightWithin(h);
-    colors = new WidgetColors(c, s);
+    colors = WidgetColors.forWidget(c, s);
     primary = colors.primary;
     secondary = colors.secondary;
     icon = colors.icon;
@@ -205,7 +205,7 @@ final class Appearance {
     int original = v instanceof TextView ? ((TextView) v).getCurrentTextColor() : 0;
     return sourceColor("mileage_alarm", original)
         ? alarm
-        : sourceColor("charge_10_text", original) ? (dark ? 0xff85d9a2 : 0xff25814d) : primary;
+        : sourceColor("charge_10_text", original) ? colors.chargeText : primary;
   }
 
   private void normalIcon(String name) {

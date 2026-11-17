@@ -106,7 +106,7 @@ final class VariantAppearance {
 
   private static RemoteViews favorites(Context c, RemoteViews original, View snapshot, WidgetStyle style,
       int width, int height, String message) throws Exception {
-    WidgetColors colors = new WidgetColors(c, style);
+    WidgetColors colors = WidgetColors.forWidget(c, style);
     RemoteViews views = base(c, style, R.layout.widget_actions, height, colors);
     int rows = style.format == WidgetFormat.FAVORITES_GRID ? 2 : 1;
     int separator = rows - 1;
@@ -142,7 +142,7 @@ final class VariantAppearance {
     boolean charging = style.format == WidgetFormat.CHARGING;
     float fontScale = c.getResources().getConfiguration().fontScale;
     boolean tightRange = !minimal && !charging && height < 144 * fontScale;
-    WidgetColors colors = new WidgetColors(c, style);
+    WidgetColors colors = WidgetColors.forWidget(c, style);
     RemoteViews views = base(c, style, minimal ? R.layout.widget_minimal
         : charging ? R.layout.widget_charging : R.layout.widget_range, height, colors);
     long now = System.currentTimeMillis();

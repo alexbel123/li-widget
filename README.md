@@ -11,7 +11,7 @@
 
 **Неофициальный компаньон для штатного виджета Li Auto.** Настраивает оформление и переводит известные подписи, сохраняя оригинальные кнопки и их обработчики. Оригинальное приложение Li Auto должно быть установлено отдельно.
 
-## Скачать 1.0 · сборка 19
+## Скачать 1.0 · сборка 20
 
 **[Установить APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Скачать ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [Все файлы релиза](https://github.com/alexbel123/li-widget/releases/latest)
 

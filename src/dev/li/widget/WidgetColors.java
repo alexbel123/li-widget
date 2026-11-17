@@ -3,6 +3,7 @@ package dev.li.widget;
 import android.content.Context;
 import android.content.res.Resources;
 import android.app.UiModeManager;
+import android.graphics.Color;
 import android.os.Build;
 import java.util.Arrays;
 
@@ -11,8 +12,17 @@ final class WidgetColors {
   final boolean dark, black, dynamic, glass, highContrast;
   final int background, panel, primary, secondary, icon, outline, surfaceRes, warning, confirmation;
   final int accent, onAccent, accentContainer, onAccentContainer, chargeAccent, actionDivider;
+  final int chargeText;
 
   WidgetColors(Context c, WidgetStyle style) {
+    this(c, style, false);
+  }
+
+  static WidgetColors forWidget(Context c, WidgetStyle style) {
+    return new WidgetColors(c, style, true);
+  }
+
+  private WidgetColors(Context c, WidgetStyle style, boolean widget) {
     dark = style.dark(c);
     black = style.theme.equals("dark");
     UiModeManager modes = c.getSystemService(UiModeManager.class);
@@ -28,22 +38,28 @@ final class WidgetColors {
     int accentInk = dark ? 0xff2b2117 : 0xfffff9f0;
     int accentFill = dark ? 0xff3b3228 : 0xffeee4d4;
     int selectedInk = accentColor;
+    int warningText = dark ? 0xffe8bd75 : 0xff8c5700;
+    int chargeValue = dark ? 0xff85d9a2 : 0xff25814d;
+    int textBackground = bg;
     boolean fromSystem = style.palette.equals("system") && !black;
     if (fromSystem) {
       try {
+        boolean lightGlass = widget && glass && !dark;
+        int panelRes = dark ? android.R.color.system_neutral1_800
+            : lightGlass ? android.R.color.system_neutral1_200 : android.R.color.system_neutral1_50;
+        int borderRes = dark ? android.R.color.system_neutral2_700
+            : lightGlass ? android.R.color.system_neutral2_300 : android.R.color.system_neutral2_200;
         int[] values = {
           c.getColor(
               dark ? android.R.color.system_neutral1_900 : android.R.color.system_neutral1_100),
-          c.getColor(
-              dark ? android.R.color.system_neutral1_800 : android.R.color.system_neutral1_50),
+          c.getColor(panelRes),
           c.getColor(
               dark ? android.R.color.system_neutral1_50 : android.R.color.system_neutral1_900),
           c.getColor(
               dark ? android.R.color.system_neutral2_200 : android.R.color.system_neutral2_700),
           c.getColor(
               dark ? android.R.color.system_neutral1_100 : android.R.color.system_neutral1_800),
-          c.getColor(
-              dark ? android.R.color.system_neutral2_700 : android.R.color.system_neutral2_200)
+          c.getColor(borderRes)
         };
         int nextAccent = c.getColor(dark ? android.R.color.system_accent1_200 : android.R.color.system_accent1_600);
         int nextInk = c.getColor(dark ? android.R.color.system_accent1_900 : android.R.color.system_accent1_0);
@@ -54,6 +70,16 @@ final class WidgetColors {
           nextInk = c.getColor(dark ? android.R.color.system_on_primary_dark : android.R.color.system_on_primary_light);
           nextFill = c.getColor(dark ? android.R.color.system_primary_container_dark : android.R.color.system_primary_container_light);
           nextSelectedInk = c.getColor(dark ? android.R.color.system_on_primary_container_dark : android.R.color.system_on_primary_container_light);
+        }
+        if (lightGlass) {
+          // Keep small text legible at the darker end of the gradient over dark wallpaper.
+          int glassEnd = c.getColor(R.color.glass_system_light_end);
+          textBackground = mix(Color.BLACK, glassEnd, Color.alpha(glassEnd) / 255f);
+          values[3] = readable(values[3], textBackground);
+          warningText = readable(warningText, textBackground);
+          chargeValue = readable(chargeValue, textBackground);
+        } else {
+          textBackground = values[0];
         }
         bg = values[0];
         tile = values[1];
@@ -82,7 +108,7 @@ final class WidgetColors {
     icon = glyph;
     outline = border;
     actionDivider = mix(border, glyph, .18f);
-    accent = readable(accentColor, background);
+    accent = readable(accentColor, textBackground);
     onAccent = readable(accentInk, accent);
     accentContainer = accentFill;
     onAccentContainer = readable(selectedInk, accentContainer);
@@ -97,7 +123,8 @@ final class WidgetColors {
             : dynamic
                 ? (dark ? R.drawable.surface_system_dark : R.drawable.surface_system_light)
                 : (dark ? R.drawable.surface_dim : R.drawable.surface_light);
-    warning = dark ? 0xffe8bd75 : 0xff8c5700;
+    warning = warningText;
+    chargeText = chargeValue;
     confirmation = dark ? 0xff302719 : 0xfff6e8ce;
   }
 

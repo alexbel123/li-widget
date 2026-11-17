@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0 · build 20 — 2026-11-17
+
+- Light Glass uses deeper neutral tones from the Android palette. The button panel and small labels are tuned for the darker widget surface.
+- Verified all seven widget formats on one device palette, then verified the overview on a second palette and in system dark mode.
+
+[Theme settings](docs/THEMING.md) · [Verification](docs/VERIFICATION.md).
+
 ## 1.0 · build 19 — 2026-11-17
 
 Android `versionName` remains **1.0**; `versionCode` is **19**. Release tag: `v1.0-build19`.

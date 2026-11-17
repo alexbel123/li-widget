@@ -5,7 +5,7 @@
 
 **An unofficial companion for the original Li Auto widget.** Customize its appearance and translate known labels while keeping the original controls and their handlers. The original Li Auto app must be installed separately.
 
-## Download 1.0 · build 19
+## Download 1.0 · build 20
 
 **[Download APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Download ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [All release files](https://github.com/alexbel123/li-widget/releases/latest)
 

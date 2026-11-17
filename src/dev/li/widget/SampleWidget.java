@@ -16,7 +16,7 @@ final class SampleWidget {
 
   static View create(Context context, WidgetStyle style, int width, int height) {
     if (!style.format.standard()) return special(context, style, width, height);
-    WidgetColors colors = new WidgetColors(context, style);
+    WidgetColors colors = WidgetColors.forWidget(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
     boolean compact = style.compact(height);
     LinearLayout sample = ui.column();
@@ -105,7 +105,7 @@ final class SampleWidget {
     if (!style.format.favorites())
       return VariantAppearance.sample(context, style, width, height)
           .apply(context, new android.widget.FrameLayout(context));
-    WidgetColors colors = new WidgetColors(context, style);
+    WidgetColors colors = WidgetColors.forWidget(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
     LinearLayout root = ui.column();
     root.setBackgroundResource(colors.surfaceRes);
