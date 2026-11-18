@@ -8,7 +8,7 @@ import android.util.SizeF;
 import java.util.*;
 
 final class WidgetStyle {
-  static final int MIN_WIDTH = 250, MIN_HEIGHT = 110, COMPACT_HEIGHT = 160;
+  static final int COMPACT_HEIGHT = 160;
   String theme = "system", palette = "system", layout = "auto", font = "normal";
   String avatar = "", motion = "fade", surface = "matte";
   boolean showTime = true, showBattery = true;
@@ -95,8 +95,7 @@ final class WidgetStyle {
   }
 
   int heightWithin(int available) {
-    if (!format.standard()) return Math.max(1, available);
-    return Math.max(1, Math.min(available, layout.equals("compact") ? COMPACT_HEIGHT : 280));
+    return Math.max(1, available);
   }
 
   float fontSize() {

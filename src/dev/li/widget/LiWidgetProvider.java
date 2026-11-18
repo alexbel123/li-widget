@@ -6,6 +6,28 @@ import android.content.*;
 import android.widget.RemoteViews;
 
 public class LiWidgetProvider extends AppWidgetProvider {
+  private static final String NEXT_ACTIONS = "dev.li.widget.NEXT_ACTIONS";
+
+  static PendingIntent nextActions(Context c, WidgetStyle style, int offset) {
+    Intent intent = new Intent(c, style.format.provider).setAction(NEXT_ACTIONS)
+        .setIdentifier(style.widgetId + "/" + offset)
+        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, style.widgetId).putExtra("offset", offset);
+    return PendingIntent.getBroadcast(c, style.widgetId, intent, PendingIntent.FLAG_IMMUTABLE);
+  }
+
+  @Override
+  public void onReceive(Context c, Intent intent) {
+    if (!NEXT_ACTIONS.equals(intent.getAction())) {
+      super.onReceive(c, intent);
+      return;
+    }
+    int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
+    int offset = intent.getIntExtra("offset", -1);
+    if (offset < 0 || offset > 3 || !State.ownsWidget(c, id)) return;
+    State.prefs(c).edit().putInt(WidgetStyle.key(id) + "action_offset", offset).apply();
+    AppWidgetManager.getInstance(c).updateAppWidget(id, BridgeService.forWidget(c, id));
+  }
+
   static RemoteViews empty(Context c, String title, String message) {
     return empty(c, -1, title, message);
   }
@@ -22,6 +44,8 @@ public class LiWidgetProvider extends AppWidgetProvider {
     boolean shortView =
         height < 150
             || (height < 200 && c.getResources().getConfiguration().fontScale > 1.15f);
+    r.setViewVisibility(R.id.filled, android.view.View.GONE);
+    r.setViewVisibility(R.id.empty, android.view.View.VISIBLE);
     r.setInt(R.id.shell, "setBackgroundResource", colors.surfaceRes);
     r.setTextViewText(R.id.empty_title, title);
     r.setTextViewText(R.id.empty_message, message);
@@ -30,20 +54,15 @@ public class LiWidgetProvider extends AppWidgetProvider {
     r.setInt(R.id.brand, "setColorFilter", colors.icon);
     r.setViewLayoutHeight(R.id.empty, height, android.util.TypedValue.COMPLEX_UNIT_DIP);
     r.setViewLayoutHeight(R.id.shell, height, android.util.TypedValue.COMPLEX_UNIT_DIP);
-    if (shortView) {
-      r.setViewVisibility(R.id.brand, android.view.View.GONE);
-      r.setViewLayoutMargin(
-          R.id.empty_title, RemoteViews.MARGIN_TOP, 0, android.util.TypedValue.COMPLEX_UNIT_DIP);
-      r.setTextViewTextSize(R.id.empty_title, android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-      r.setTextViewTextSize(R.id.empty_message, android.util.TypedValue.COMPLEX_UNIT_SP, 11);
-      int pad = Math.round(8 * c.getResources().getDisplayMetrics().density);
-      r.setViewPadding(R.id.empty, pad, pad, pad, pad);
-    }
-    if (height < 70) {
-      r.setViewVisibility(R.id.empty_message, android.view.View.GONE);
-      r.setInt(R.id.empty_title, "setMaxLines", 2);
-      r.setTextViewTextSize(R.id.empty_title, android.util.TypedValue.COMPLEX_UNIT_SP, 11);
-    }
+    r.setViewVisibility(R.id.brand, shortView ? android.view.View.GONE : android.view.View.VISIBLE);
+    r.setViewVisibility(R.id.empty_message, height < 70 ? android.view.View.GONE : android.view.View.VISIBLE);
+    r.setViewLayoutMargin(R.id.empty_title, RemoteViews.MARGIN_TOP, shortView ? 0 : 12,
+        android.util.TypedValue.COMPLEX_UNIT_DIP);
+    r.setTextViewTextSize(R.id.empty_title, android.util.TypedValue.COMPLEX_UNIT_SP, height < 70 ? 11 : shortView ? 14 : 17);
+    r.setTextViewTextSize(R.id.empty_message, android.util.TypedValue.COMPLEX_UNIT_SP, shortView ? 11 : 12);
+    r.setInt(R.id.empty_title, "setMaxLines", height < 70 ? 2 : Integer.MAX_VALUE);
+    int pad = Math.round((shortView ? 8 : 20) * c.getResources().getDisplayMetrics().density);
+    r.setViewPadding(R.id.empty, pad, pad, pad, pad);
     r.setOnClickPendingIntent(
         R.id.empty,
         PendingIntent.getActivity(
@@ -75,13 +94,16 @@ public class LiWidgetProvider extends AppWidgetProvider {
 
   @Override
   public void onDeleted(Context c, int[] ids) {
-    for (int id : ids) WidgetStyle.remove(c, id);
+    for (int id : ids) {
+      BridgeService.forgetClock(id);
+      WidgetStyle.remove(c, id);
+    }
   }
 
   @Override
   public void onAppWidgetOptionsChanged(
       Context c, AppWidgetManager m, int id, android.os.Bundle b) {
     m.updateAppWidget(id, BridgeService.forWidget(c, id));
-    if (State.connected(c)) State.start(c);
+    if (State.connected(c) && !BridgeService.hasSnapshot(c)) State.start(c);
   }
 }

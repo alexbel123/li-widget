@@ -18,6 +18,8 @@ public class BridgeService extends Service {
   private AppWidgetHost host;
   private ThemeWatcher themeWatcher;
   private String notificationLanguage = "";
+  private final Map<Integer, String> clockLabels = new HashMap<>();
+  private boolean clockHasReadings;
   private final Handler handler = new Handler(Looper.getMainLooper());
   private int attachedId = -1;
   private final Runnable refresh = () -> refreshSnapshot();
@@ -29,15 +31,14 @@ public class BridgeService extends Service {
   private final Runnable minute =
       new Runnable() {
         public void run() {
-          if (getSystemService(PowerManager.class).isInteractive()) refreshSnapshot();
+          if (getSystemService(PowerManager.class).isInteractive()) updateClock();
           handler.postDelayed(this, 60000);
         }
       };
   private final BroadcastReceiver clock =
       new BroadcastReceiver() {
         public void onReceive(Context c, Intent i) {
-          handler.removeCallbacks(refresh);
-          handler.post(refresh);
+          updateClock();
         }
       };
 
@@ -161,14 +162,13 @@ public class BridgeService extends Service {
       Freshness last = freshness;
       sourceViews = captured[0] == null ? null : captured[0].remote;
       sourceSnapshot = captured[0];
-      if (sourceViews != null)
-        freshness =
-            Freshness.observe(
-                this,
-                Appearance.sourceText(this, sourceSnapshot, "widget_update_time"),
-                System.currentTimeMillis());
-      boolean newReading = sourceViews != null && previous != null && freshness.anchor > 0
-          && (!freshness.original.equals(last.original) || readingsChanged(this, previous, sourceSnapshot));
+      boolean changed = previous != null && sourceViews != null && readingsChanged(this, previous, sourceSnapshot);
+      clockHasReadings = sourceViews != null && visibleSource("ll_widget_car") && !visibleSource("widget_text");
+      if (sourceViews != null && visibleSource("ll_widget_car"))
+        freshness = Freshness.observe(this, Appearance.sourceText(this, sourceSnapshot, "widget_update_time"),
+            System.currentTimeMillis(), changed && clockHasReadings);
+      boolean newReading = sourceViews != null && previous != null
+          && (!freshness.original.equals(last.original) || changed);
       ChargeReading charge = ChargeReading.read(this, sourceSnapshot);
       boolean chargeChanged = sourceViews != null && charge != null
           && charge.changedFrom(ChargeReading.read(this, previous));
@@ -177,6 +177,8 @@ public class BridgeService extends Service {
         handler.postDelayed(settleCharge, WidgetMotion.CHARGE_PULSE_MILLIS + 150);
       sendBroadcast(new Intent(State.UPDATE).setPackage(getPackageName()));
     } catch (Exception e) {
+      clockHasReadings = false;
+      clockLabels.clear();
       sourceViews = null;
       sourceSnapshot = null;
       LiWidgetProvider.showEmpty(
@@ -185,6 +187,57 @@ public class BridgeService extends Service {
           Language.text(this, R.string.reconnect_source));
       sendBroadcast(new Intent(State.UPDATE).setPackage(getPackageName()));
     }
+  }
+
+  private boolean visibleSource(String field) {
+    try {
+      int id = getPackageManager().getResourcesForApplication(State.SOURCE).getIdentifier(field, "id", State.SOURCE);
+      View v = sourceSnapshot == null ? null : sourceSnapshot.findViewById(id);
+      return Appearance.visible(v) && (!(v instanceof android.widget.TextView) || ((android.widget.TextView) v).length() != 0);
+    } catch (android.content.pm.PackageManager.NameNotFoundException gone) {
+      return false;
+    }
+  }
+
+  static String clockLabel(Context c, Freshness freshness, WidgetStyle style, Collection<SizeF> sizes, long now) {
+    if (style.format.favorites()) return null;
+    boolean stale = freshness.stale(now, style.staleMinutes);
+    boolean hasMetrics = false, timed = false;
+    float scale = c.getResources().getConfiguration().fontScale;
+    for (SizeF size : sizes) {
+      int h = (int) size.getHeight();
+      WidgetFormat display = style.format.presentation(style, (int) size.getWidth(), h, scale);
+      if (display.favorites()) continue;
+      hasMetrics = true;
+      if (display != WidgetFormat.MINIMAL && (stale || style.showTime
+          && (display != WidgetFormat.RANGE || h >= 144 * scale))) timed = true;
+    }
+    if (!hasMetrics) return null;
+    return timed ? freshness.text(c, now, style.staleMinutes) : stale ? "stale" : "";
+  }
+
+  private void updateClock() {
+    if (!clockHasReadings || clockLabels.isEmpty()) return;
+    long now = System.currentTimeMillis();
+    if (now < freshness.observedSince || now < freshness.anchor)
+      freshness = Freshness.observe(this, freshness.original, now);
+    AppWidgetManager manager = AppWidgetManager.getInstance(this);
+    for (int widget : new ArrayList<>(clockLabels.keySet())) {
+      WidgetStyle style = WidgetStyle.read(this, widget);
+      String next = clockLabel(this, freshness, style, WidgetStyle.sizes(manager.getAppWidgetOptions(widget), style.format), now);
+      if (!Objects.equals(next, clockLabels.get(widget)))
+        manager.updateAppWidget(widget, forWidget(this, widget));
+    }
+  }
+
+  static void forgetClock(int id) {
+    if (instance != null) instance.clockLabels.remove(id);
+  }
+
+  static View sourceForEditor() { return sourceSnapshot; }
+
+  static boolean hasSnapshot(Context c) {
+    return instance != null && instance.attachedId == State.sourceId(c) && sourceViews != null;
   }
 
   private void publishWidgets(boolean newReading, boolean chargeChanged) {
@@ -244,8 +297,14 @@ public class BridgeService extends Service {
 
   private static RemoteViews forWidget(Context c, int id, boolean newReading, boolean chargeChanged) {
     Map<SizeF, RemoteViews> views = new LinkedHashMap<>();
-    for (SizeF size : WidgetStyle.sizes(AppWidgetManager.getInstance(c).getAppWidgetOptions(id),
-        WidgetStyle.read(c, id).format))
+    WidgetStyle style = WidgetStyle.read(c, id);
+    List<SizeF> sizes = WidgetStyle.sizes(AppWidgetManager.getInstance(c).getAppWidgetOptions(id), style.format);
+    if (instance != null) {
+      String label = instance.clockHasReadings ? clockLabel(c, freshness, style, sizes, System.currentTimeMillis()) : null;
+      if (label == null) instance.clockLabels.remove(id);
+      else instance.clockLabels.put(id, label);
+    }
+    for (SizeF size : sizes)
       views.put(
           size,
           preview(c, id, (int) Math.floor(size.getWidth()), (int) Math.floor(size.getHeight()),

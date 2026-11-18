@@ -15,25 +15,32 @@ final class SampleWidget {
   static final int[] ACTION_NAMES = {R.string.action_locks, R.string.action_climate, R.string.action_tailgate, R.string.action_move};
 
   static View create(Context context, WidgetStyle style, int width, int height) {
-    if (!style.format.standard()) return special(context, style, width, height);
+    WidgetFormat display = style.format.presentation(style, width, height, context.getResources().getConfiguration().fontScale);
+    if (!display.standard()) {
+      if (display.favorites()) return sampleActions(context, style, width, height, WidgetFormat.actionRows(width, height), false);
+      return VariantAppearance.sample(context, style, width, height).apply(context, new android.widget.FrameLayout(context));
+    }
     WidgetColors colors = WidgetColors.forWidget(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
-    boolean compact = style.compact(height);
+    boolean compact = display == WidgetFormat.FULL && style.compact(height);
+    boolean overview = display == WidgetFormat.LARGE;
+    WidgetFormat.OverviewSize geometry = new WidgetFormat.OverviewSize(width, height, style.showTime ? 23 : 0);
     LinearLayout sample = ui.column();
-    int sidePadding = ui.dp(Appearance.actionInset(width));
-    sample.setPadding(sidePadding, ui.dp(6), sidePadding, ui.dp(8));
+    int inset = overview ? geometry.inset : Appearance.actionInset(width);
+    int sidePadding = ui.dp(inset);
+    sample.setPadding(sidePadding, overview ? 0 : ui.dp(6), sidePadding, ui.dp(8));
     sample.setBackgroundResource(colors.surfaceRes);
 
     LinearLayout header = new LinearLayout(context);
     header.setGravity(Gravity.CENTER_VERTICAL);
-    Bitmap avatar = compact ? null : WidgetAvatar.icon(context, style.avatar);
+    Bitmap avatar = compact || width < 210 ? null : WidgetAvatar.icon(context, style.avatar);
     if (avatar != null) {
       ImageView photo = new ImageView(context);
       photo.setId(R.id.animated_avatar);
       photo.setImageBitmap(avatar);
-      LinearLayout.LayoutParams inset = new LinearLayout.LayoutParams(ui.dp(44), ui.dp(44));
-      inset.setMarginEnd(ui.dp(10));
-      header.addView(photo, inset);
+      LinearLayout.LayoutParams avatarSize = new LinearLayout.LayoutParams(ui.dp(44), ui.dp(44));
+      avatarSize.setMarginEnd(ui.dp(10));
+      header.addView(photo, avatarSize);
     }
     VehiclePaints.PaintOption car = VehiclePaints.find(style.avatar);
     String title = "Li Auto " + (car == null ? "L7" : VehiclePaints.MODELS[car.model]);
@@ -53,65 +60,39 @@ final class SampleWidget {
     header.addView(identity, new LinearLayout.LayoutParams(0, -2, 1));
     TextView config = ui.text(Language.text(context, R.string.sample_widget_badge), 11, colors.secondary, false);
     header.addView(config);
-    sample.addView(header, new LinearLayout.LayoutParams(-1, ui.dp(compact ? 40 : Appearance.DETAILED_HEADER_DP)));
+    int headerHeight = overview ? geometry.header : compact ? 40 : Appearance.DETAILED_HEADER_DP;
+    sample.addView(header, new LinearLayout.LayoutParams(-1, ui.dp(headerHeight)));
 
     if (!compact) {
-      LinearLayout readings = new LinearLayout(context);
-      readings.setGravity(Gravity.CENTER_VERTICAL);
-      addReading(readings, ui, context, R.string.electric_range, "186",
-          style.showBattery ? "  ·  76%" : "", colors);
-      addReading(readings, ui, context, R.string.fuel_range, "742", "", colors);
-      sample.addView(readings, new LinearLayout.LayoutParams(-1, ui.dp(58)));
+      int hero = overview ? geometry.hero : 58;
+      View readings = VariantAppearance.sampleOverview(context, style, width, hero)
+          .apply(context, new android.widget.FrameLayout(context));
+      readings.setPadding(0, 0, 0, 0);
+      sample.addView(readings, new LinearLayout.LayoutParams(-1, ui.dp(hero)));
     }
 
-    LinearLayout controls = new LinearLayout(context);
-    controls.setGravity(Gravity.CENTER_VERTICAL);
-    controls.setBackground(ui.solid(colors.panel, 16, 0));
-    int controlsHeight = compact ? (height < 132 ? 52 : 57) : 66;
-    for (int index = 0; index < ACTION_NAMES.length; index++) {
-      if (index > 0) {
-        View line = new View(context);
-        line.setBackgroundColor(colors.actionDivider);
-        controls.addView(line, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(Appearance.actionDividerHeight(controlsHeight))));
-      }
-      LinearLayout tile = ui.column();
-      tile.setGravity(Gravity.CENTER);
-      tile.setPadding(ui.dp(3), ui.dp(2), ui.dp(3), ui.dp(2));
-      ImageView icon = new ImageView(context);
-      icon.setImageResource(ACTION_ICONS[index]);
-      icon.setColorFilter(colors.icon);
-      int glyph = ui.dp(compact ? 23 : 25);
-      tile.addView(icon, new LinearLayout.LayoutParams(glyph, glyph));
-      TextView label = ui.text(Language.text(context, ACTION_NAMES[index]), style.fontSize(), colors.primary, false);
-      label.setGravity(Gravity.CENTER);
-      label.setMaxLines(2);
-      LinearLayout.LayoutParams textLayout = new LinearLayout.LayoutParams(-1, -2);
-      textLayout.topMargin = ui.dp(4);
-      tile.addView(label, textLayout);
-      controls.addView(tile, new LinearLayout.LayoutParams(0, -1, 1));
-    }
+    int controlsHeight = overview ? geometry.actions : height < 132 ? 52 : 57;
+    int rows = overview ? geometry.rows : 1;
+    View controls = sampleActions(context, style, width - 2 * inset, controlsHeight, rows, true);
     sample.addView(controls, new LinearLayout.LayoutParams(-1, ui.dp(controlsHeight)));
     if (style.showTime && height >= 148) {
       TextView update = ui.text(Language.text(context, R.string.sample_update), 11, colors.secondary, false);
       update.setId(R.id.status_text);
       LinearLayout.LayoutParams text = new LinearLayout.LayoutParams(-1, -2);
-      text.topMargin = ui.dp(8);
+      text.topMargin = ui.dp(overview ? 3 : 8);
       sample.addView(update, text);
     }
     return sample;
   }
 
-  private static View special(Context context, WidgetStyle style, int width, int height) {
-    if (!style.format.favorites())
-      return VariantAppearance.sample(context, style, width, height)
-          .apply(context, new android.widget.FrameLayout(context));
+  private static View sampleActions(Context context, WidgetStyle style, int width, int height, int rows, boolean embedded) {
     WidgetColors colors = WidgetColors.forWidget(context, style);
     SettingsLook ui = new SettingsLook(context, colors);
     LinearLayout root = ui.column();
-    root.setBackgroundResource(colors.surfaceRes);
-    int rows = style.format == WidgetFormat.FAVORITES_GRID ? 2 : 1;
+    if (embedded) root.setBackground(ui.solid(colors.panel, 16, 0));
+    else root.setBackgroundResource(colors.surfaceRes);
     int separator = rows - 1;
-    int pad = Math.min(6, Math.max(0, (height - rows * 48 - separator) / 2));
+    int pad = embedded ? 0 : Math.min(6, Math.max(0, (height - rows * 48 - separator) / 2));
     int rowHeight = Math.max(1, (height - 2 * pad - separator) / rows);
     root.setPadding(ui.dp(4), ui.dp(pad), ui.dp(4), ui.dp(pad));
     for (int r = 0; r < rows; r++) {
@@ -124,7 +105,7 @@ final class SampleWidget {
       }
       LinearLayout row = new LinearLayout(context);
       row.setGravity(Gravity.CENTER_VERTICAL);
-      int count = 4 / rows;
+      int count = embedded ? 4 / rows : WidgetFormat.firstRowCount(width, rows);
       for (int i = r * count; i < (r + 1) * count; i++) {
         if (i > r * count) {
           View line = new View(context);
@@ -136,7 +117,8 @@ final class SampleWidget {
         ImageView icon = new ImageView(context);
         icon.setImageResource(ACTION_ICONS[i]);
         icon.setColorFilter(colors.icon);
-        tile.addView(icon, new LinearLayout.LayoutParams(ui.dp(32), ui.dp(32)));
+        int glyph = rowHeight >= 70 ? 34 : rowHeight >= 56 ? 30 : 24;
+        tile.addView(icon, new LinearLayout.LayoutParams(ui.dp(glyph), ui.dp(glyph)));
         TextView name = ui.text(Language.text(context, ACTION_NAMES[i]), style.fontSize(), colors.primary, false);
         name.setGravity(Gravity.CENTER);
         name.setMaxLines(2);
@@ -146,22 +128,15 @@ final class SampleWidget {
         tile.addView(name, label);
         row.addView(tile, new LinearLayout.LayoutParams(0, -1, 1));
       }
+      if (rows == 1 && count < 4) {
+        int pages = (4 + count - 1) / count;
+        TextView next = ui.text("1/" + pages + " ›", 12, colors.secondary, true);
+        next.setGravity(Gravity.CENTER);
+        row.addView(next, new LinearLayout.LayoutParams(ui.dp(48), -1));
+      }
       root.addView(row, new LinearLayout.LayoutParams(-1, ui.dp(rowHeight)));
     }
     return root;
   }
 
-  private static void addReading(LinearLayout row, SettingsLook ui, Context context,
-      int label, String value, String detail, WidgetColors colors) {
-    LinearLayout cell = ui.column();
-    String km = Language.text(context, R.string.sample_km);
-    TextView number = ui.text(value + " " + km, 23, colors.primary, true);
-    number.setMaxLines(1);
-    cell.addView(number);
-    TextView caption = ui.text(Language.text(context, label) + detail, 11, colors.secondary, false);
-    LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
-    space.topMargin = ui.dp(3);
-    cell.addView(caption, space);
-    row.addView(cell, new LinearLayout.LayoutParams(0, -2, 1));
-  }
 }

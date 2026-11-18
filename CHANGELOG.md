@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0 · build 21 — 2026-11-18
+
+- Overview and Large fill the available launcher frame. Widening or narrowing the same widget switches between range, actions, a compact overview and a dashboard. Large also has a distinct picker preview.
+- Both Favorites providers switch between a row and a grid. The smallest row can page through all four original actions.
+- Compact metrics show an explicit source error. An unchanged first timestamp can show how long no new readings have arrived. Minute ticks use the cached reading and only republish affected widgets.
+- The button editor shows translated source actions only on formats that have controls. All existing short action labels are preserved.
+
+[Widget behavior](docs/WIDGETS.md) · [Verification](docs/VERIFICATION.md).
+
 ## 1.0 · build 20 — 2026-11-17
 
 - Light Glass uses deeper neutral tones from the Android palette. The button panel and small labels are tuned for the darker widget surface.

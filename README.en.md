@@ -5,11 +5,11 @@
 
 **An unofficial companion for the original Li Auto widget.** Customize its appearance and translate known labels while keeping the original controls and their handlers. The original Li Auto app must be installed separately.
 
-## Download 1.0 · build 20
+## Download 1.0 · build 21
 
-**[Download APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Download ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [All release files](https://github.com/alexbel123/li-widget/releases/latest)
+**[Download APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Source code ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0-source.zip)** · [APK with installation instructions (ZIP)](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip) · [Release page](https://github.com/alexbel123/li-widget/releases/latest)
 
-The ZIP contains the same APK, installation notes and its checksum. Browse the source in this repository or download **Source code** from the release page. Use `SHA256SUMS.txt` to verify downloads.
+You can install this APK over build 20. The source archive includes the code for this version, the build tools and the MIT license. [SHA-256 checksums](https://github.com/alexbel123/li-widget/releases/latest/download/SHA256SUMS.txt)
 
 <table>
 <tr><th>Format</th><th>Light theme</th><th>Dark theme</th></tr>

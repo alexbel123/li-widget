@@ -9,26 +9,36 @@ import java.util.regex.*;
 final class Freshness {
   final String original;
   final long anchor;
+  final long observedSince;
 
-  Freshness(String stamp, long at) {
-    original = stamp;
-    anchor = at;
+  Freshness(String stamp, long at) { this(stamp, at, 0); }
+
+  private Freshness(String stamp, long at, long observedSince) {
+    this.original = stamp;
+    this.anchor = at;
+    this.observedSince = observedSince;
   }
 
   static Freshness observe(Context c, String stamp, long now) {
+    return observe(c, stamp, now, false);
+  }
+
+  static Freshness observe(Context c, String stamp, long now, boolean readingsChanged) {
     SharedPreferences p = State.prefs(c);
     String old = p.getString("fresh_stamp", "");
     long at = p.getLong("fresh_anchor", 0);
-    if (!stamp.equals(old)) {
-      at =
-          old.length() > 0
-              ? anchorForObservedChange(
-                  stamp, now, DateFormat.is24HourFormat(c.getApplicationContext()))
-              : 0;
-      p.edit().putString("fresh_stamp", stamp).putLong("fresh_anchor", at).apply();
+    long since = p.getLong("fresh_first_seen", 0);
+    if (!stamp.equals(old) || readingsChanged || since == 0 || since > now || at > now) {
+      if (!stamp.equals(old)) {
+        at = old.isEmpty() ? 0 : anchorForObservedChange(stamp, now, DateFormat.is24HourFormat(c));
+      } else if (readingsChanged || since > now || at > now) {
+        at = 0;
+      }
+      since = now;
+      p.edit().putString("fresh_stamp", stamp).putLong("fresh_anchor", at)
+          .putLong("fresh_first_seen", since).apply();
     }
-    if (at > now + 5000) at = 0;
-    return new Freshness(stamp, at);
+    return new Freshness(stamp, at, since);
   }
 
   static long anchorForObservedChange(String stamp, long now, boolean is24) {
@@ -52,7 +62,8 @@ final class Freshness {
   }
 
   boolean stale(long now, int threshold) {
-    return anchor > 0 && now >= anchor && now - anchor >= threshold * 60000L;
+    long start = anchor > 0 ? anchor : observedSince;
+    return start > 0 && now >= start && now - start >= threshold * 60000L;
   }
 
   String text(Context c, long now, int threshold) {
@@ -65,6 +76,8 @@ final class Freshness {
 
   private String display(Context c, long now, int threshold, boolean compact) {
     if (anchor <= 0 || now < anchor) {
+      if (stale(now, threshold))
+        return Language.text(c, R.string.no_new_readings_age, age(c, (now - observedSince) / 60000L));
       Matcher m = Pattern.compile("\\d{1,2}:\\d{2}").matcher(original);
       return m.find()
           ? Language.text(c, compact ? R.string.updated_at_short : R.string.updated_at, m.group())
@@ -74,20 +87,19 @@ final class Freshness {
     long minutes = (now - anchor) / 60000L;
     if (minutes == 0)
       return Language.text(c, compact ? R.string.updated_now_short : R.string.updated_now);
-    String age;
-    if (minutes < 60) age = Language.text(c, R.string.age_minutes, minutes);
-    else if (minutes < 1440)
-      age =
-          Language.text(c, R.string.age_hours, minutes / 60)
-              + (minutes % 60 > 0
-                  ? " " + Language.text(c, R.string.age_minutes, minutes % 60)
-                  : "");
-    else age = Language.text(c, R.string.age_days, minutes / 1440);
+    String age = age(c, minutes);
     if (stale(now, threshold)) return Language.text(c, R.string.stale_age, age);
     return compact ? age : Language.text(c, R.string.updated_age, age);
   }
 
+  private static String age(Context c, long minutes) {
+    if (minutes < 60) return Language.text(c, R.string.age_minutes, minutes);
+    if (minutes >= 1440) return Language.text(c, R.string.age_days, minutes / 1440);
+    String hours = Language.text(c, R.string.age_hours, minutes / 60);
+    return minutes % 60 == 0 ? hours : hours + " " + Language.text(c, R.string.age_minutes, minutes % 60);
+  }
+
   static void clear(Context c) {
-    State.prefs(c).edit().remove("fresh_stamp").remove("fresh_anchor").apply();
+    State.prefs(c).edit().remove("fresh_stamp").remove("fresh_anchor").remove("fresh_first_seen").apply();
   }
 }

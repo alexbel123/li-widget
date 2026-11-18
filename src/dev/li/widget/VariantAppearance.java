@@ -72,7 +72,7 @@ final class VariantAppearance {
   }
 
   static RemoteViews render(Context context, RemoteViews original, View snapshot, WidgetStyle style,
-      int width, int height, Freshness freshness, boolean chargeChanged) throws Exception {
+      WidgetFormat display, int width, int height, Freshness freshness, boolean chargeChanged) throws Exception {
     Context local = Language.context(context);
     Context source = context.createPackageContext(State.SOURCE, 0);
     int car = source.getResources().getIdentifier("ll_widget_car", "id", State.SOURCE);
@@ -80,21 +80,27 @@ final class VariantAppearance {
       return LiWidgetProvider.empty(context, style.widgetId, Language.text(local, R.string.connect_title),
           Language.text(local, R.string.open_and_sign_in), height);
     Reading reading = read(local, source, snapshot);
-    if (style.format.favorites())
-      return favorites(local, original, snapshot, style, width, height, reading.message);
+    if (display.favorites())
+      return actionPanel(local, original, snapshot, style, width, height, reading.message,
+          WidgetFormat.actionRows(width, height), false);
     RemoteViews refresh = Appearance.refreshOverlay(local, original, snapshot, style, width, height);
-    return metrics(local, style, width, height, freshness, chargeChanged, reading, true, refresh);
+    return metrics(local, style, display, width, height, freshness, chargeChanged, reading, true, refresh);
   }
 
   static RemoteViews sample(Context context, WidgetStyle style, int width, int height) {
     Context local = Language.context(context);
+    WidgetFormat display = style.format.presentation(style, width, height, local.getResources().getConfiguration().fontScale);
+    return metrics(local, style, display, width, height, new Freshness("", 0), false, sampleReading(local), false, null);
+  }
+
+  private static Reading sampleReading(Context local) {
     Reading sample = new Reading();
     sample.name = Language.text(local, R.string.sample_widget_badge);
     sample.electric = "186 " + Language.text(local, R.string.sample_km);
     sample.fuel = "742 " + Language.text(local, R.string.sample_km);
     sample.percent = 76;
     sample.known = true;
-    return metrics(local, style, width, height, new Freshness("", 0), false, sample, false, null);
+    return sample;
   }
 
   private static RemoteViews base(Context c, WidgetStyle style, int layout, int height, WidgetColors colors) {
@@ -104,20 +110,33 @@ final class VariantAppearance {
     return result;
   }
 
-  private static RemoteViews favorites(Context c, RemoteViews original, View snapshot, WidgetStyle style,
-      int width, int height, String message) throws Exception {
+  static RemoteViews actionPanel(Context c, RemoteViews original, View snapshot, WidgetStyle style,
+      int width, int height, String message, int rows, boolean embedded) throws Exception {
     WidgetColors colors = WidgetColors.forWidget(c, style);
     RemoteViews views = base(c, style, R.layout.widget_actions, height, colors);
-    int rows = style.format == WidgetFormat.FAVORITES_GRID ? 2 : 1;
+    if (embedded) views.setColorStateList(R.id.variant_root, "setBackgroundTintList", ColorStateList.valueOf(colors.panel));
+    int count = embedded ? 4 / rows : WidgetFormat.firstRowCount(width, rows);
+    boolean paged = rows == 1 && count < 4;
+    int first = paged ? 1 + (State.prefs(c).getInt(WidgetStyle.key(style.widgetId) + "action_offset", 0) / count) * count : 1;
+    int last = Math.min(4, first + count - 1);
+    views.setViewVisibility(R.id.actions_next, paged ? View.VISIBLE : View.GONE);
+    if (paged) {
+      int page = 1 + (first - 1) / count, pages = (4 + count - 1) / count;
+      views.setTextViewText(R.id.actions_next, page + "/" + pages + " ›");
+      views.setTextColor(R.id.actions_next, colors.secondary);
+      views.setContentDescription(R.id.actions_next, Language.text(c, R.string.next_actions, page, pages));
+      if (style.widgetId >= 0) views.setOnClickPendingIntent(R.id.actions_next,
+          LiWidgetProvider.nextActions(c, style, last == 4 ? 0 : last));
+    }
     int separator = rows - 1;
     int footer = message.isEmpty() ? 0 : Math.min(16, Math.max(0, height - 48 * rows - separator));
-    int pad = Math.min(6, Math.max(0, (height - footer - rows * 48 - separator) / 2));
+    int pad = embedded ? 0 : Math.min(6, Math.max(0, (height - footer - rows * 48 - separator) / 2));
     int rowHeight = Math.max(1, (height - 2 * pad - footer - separator) / rows);
     views.setViewPadding(R.id.variant_root, dp(c, 4), dp(c, pad), dp(c, 4), dp(c, pad));
     views.setViewLayoutHeight(R.id.actions_first, rowHeight, TypedValue.COMPLEX_UNIT_DIP);
     views.removeAllViews(R.id.actions_first);
     views.addView(R.id.actions_first, Appearance.actionRow(c, original, snapshot, style,
-        Math.max(1, width - 8), rowHeight, 1, rows == 2 ? 2 : 4));
+        Math.max(1, width - 8 - (paged ? 48 : 0)), rowHeight, first, last));
     views.setViewVisibility(R.id.actions_second, rows == 2 ? View.VISIBLE : View.GONE);
     views.setViewVisibility(R.id.actions_divider, rows == 2 ? View.VISIBLE : View.GONE);
     views.setInt(R.id.actions_divider, "setBackgroundColor", colors.actionDivider);
@@ -136,10 +155,10 @@ final class VariantAppearance {
     return views;
   }
 
-  private static RemoteViews metrics(Context c, WidgetStyle style, int width, int height,
+  private static RemoteViews metrics(Context c, WidgetStyle style, WidgetFormat display, int width, int height,
       Freshness freshness, boolean changed, Reading reading, boolean interactive, RemoteViews refresh) {
-    boolean minimal = style.format == WidgetFormat.MINIMAL;
-    boolean charging = style.format == WidgetFormat.CHARGING;
+    boolean minimal = display == WidgetFormat.MINIMAL;
+    boolean charging = display == WidgetFormat.CHARGING;
     float fontScale = c.getResources().getConfiguration().fontScale;
     boolean tightRange = !minimal && !charging && height < 144 * fontScale;
     WidgetColors colors = WidgetColors.forWidget(c, style);
@@ -152,6 +171,7 @@ final class VariantAppearance {
     int pad = minimal ? (width < 140 ? 6 : 10) : width < 150 || height < 140 ? 8 : 12;
     int verticalPad = Math.min(pad, height / 8);
     views.setViewPadding(R.id.metrics_body, dp(c, pad), dp(c, verticalPad), dp(c, pad), dp(c, verticalPad));
+    views.setContentDescription(R.id.metric_refresh_slot, null);
     views.removeAllViews(R.id.metric_refresh_slot);
     if (refresh != null) views.addView(R.id.metric_refresh_slot, refresh);
     if (interactive) {
@@ -178,7 +198,8 @@ final class VariantAppearance {
       views.setTextViewTextSize(R.id.variant_name, TypedValue.COMPLEX_UNIT_SP, height < 140 ? 12 : 15);
       views.setTextViewText(R.id.variant_status, status);
       views.setTextColor(R.id.variant_status, warning);
-      views.setViewVisibility(R.id.variant_footer, !tightRange && (style.showTime || !reading.message.isEmpty()) ? View.VISIBLE : View.GONE);
+      views.setViewVisibility(R.id.variant_footer, (!tightRange && style.showTime || stale || !reading.message.isEmpty())
+          ? View.VISIBLE : View.GONE);
       views.setViewVisibility(R.id.variant_refresh_mark, refresh == null ? View.GONE : View.VISIBLE);
       views.setInt(R.id.variant_refresh_mark, "setColorFilter", warning);
       views.setTextViewTextSize(R.id.variant_status, TypedValue.COMPLEX_UNIT_SP, height < 140 ? 9 : 10);
@@ -217,7 +238,7 @@ final class VariantAppearance {
       }
       views.setInt(R.id.variant_divider, "setBackgroundColor", colors.outline);
       float column = minimal ? (width - 2 * pad - 17) / 2f : width - 2 * pad;
-      float footer = !tightRange && (style.showTime || !reading.message.isEmpty()) ? 14 * fontScale + 4 : 0;
+      float footer = ((!tightRange && style.showTime) || stale || !reading.message.isEmpty()) ? 14 * fontScale + 4 : 0;
       float row = (height - 2 * Math.min(pad, height / 8) - (tightRange ? 0 : 32) - footer - 1) / 2f;
       float caption = (height < 140 ? 9 : 10) * fontScale * 1.4f;
       float size = minimal ? Math.min(24, height * .35f) : Math.min(32, (row - caption - 2) / (1.25f * fontScale));
@@ -228,7 +249,78 @@ final class VariantAppearance {
         views.setTextViewTextSize(R.id.fuel_caption, TypedValue.COMPLEX_UNIT_SP, 9);
       }
     }
-    views.setContentDescription(R.id.variant_root, Language.text(c, style.format.title) + ". " + status);
+    if (minimal || display == WidgetFormat.RANGE) {
+      views.setViewVisibility(R.id.metrics_body, View.VISIBLE);
+      views.setViewVisibility(R.id.metric_notice, View.GONE);
+      views.setViewVisibility(R.id.electric_caption, View.VISIBLE);
+      views.setViewVisibility(R.id.fuel_caption, View.VISIBLE);
+    }
+    if ((minimal || tightRange) && !reading.message.isEmpty()) {
+      views.setViewVisibility(R.id.metrics_body, View.GONE);
+      views.setViewVisibility(R.id.metric_notice, View.VISIBLE);
+      views.setInt(R.id.metric_notice, "setGravity", android.view.Gravity.CENTER);
+      views.setTextViewTextSize(R.id.metric_notice, TypedValue.COMPLEX_UNIT_SP, 13);
+      views.setTextViewText(R.id.metric_notice, reading.message);
+      views.setTextColor(R.id.metric_notice, colors.warning);
+      views.setContentDescription(R.id.metric_refresh_slot, reading.message);
+    } else if (minimal && stale) {
+      views.setViewVisibility(R.id.metric_notice, View.VISIBLE);
+      views.setInt(R.id.metric_notice, "setGravity", android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL);
+      views.setTextViewTextSize(R.id.metric_notice, TypedValue.COMPLEX_UNIT_SP, 10);
+      views.setTextViewText(R.id.metric_notice, Language.text(c, R.string.no_new_readings));
+      views.setTextColor(R.id.metric_notice, colors.warning);
+      views.setViewVisibility(R.id.electric_caption, View.GONE);
+      views.setViewVisibility(R.id.fuel_caption, View.GONE);
+      views.setViewPadding(R.id.metrics_body, dp(c, pad), dp(c, 14), dp(c, pad), 0);
+    }
+    views.setContentDescription(R.id.variant_root, Language.text(c, display.title) + ". " + status);
+    return views;
+  }
+
+  static RemoteViews overviewMetrics(Context c, Context source, View root, WidgetStyle style, int width, int height) {
+    return overviewMetrics(c, style, width, height, read(c, source, root));
+  }
+
+  static RemoteViews sampleOverview(Context c, WidgetStyle style, int width, int height) {
+    return overviewMetrics(c, style, width, height, sampleReading(c));
+  }
+
+  private static RemoteViews overviewMetrics(Context c, WidgetStyle style, int width, int height, Reading r) {
+    boolean stacked = width < 200 && height >= 104;
+    RemoteViews views = new RemoteViews(c.getPackageName(), stacked ? R.layout.widget_overview_stack : R.layout.widget_overview_readings);
+    WidgetColors colors = WidgetColors.forWidget(c, style);
+    int edge = width < 200 ? 8 : 16;
+    views.setViewPadding(R.id.overview_readings, dp(c, edge), 0, dp(c, edge), 0);
+    boolean chargeLevel = r.charging && r.electric.equals(MISSING) && r.percent >= 0;
+    String electric = Language.text(c, chargeLevel ? R.string.battery_level
+        : width < 200 ? R.string.electric_short : R.string.electric_range);
+    boolean batteryBand = !stacked && width >= 224 && height >= 112 && style.showBattery
+        && !chargeLevel && r.percent >= 0 && r.message.isEmpty();
+    if (!chargeLevel && !batteryBand && style.showBattery && r.percent >= 0) electric += " · " + r.percent + "%";
+    views.setTextViewText(R.id.electric_caption, electric);
+    views.setTextViewText(R.id.fuel_caption, Language.text(c, width < 200 ? R.string.fuel_short : R.string.fuel_range));
+    views.setTextColor(R.id.electric_caption, colors.secondary);
+    views.setTextColor(R.id.fuel_caption, colors.secondary);
+    if (!stacked) {
+      views.setViewVisibility(R.id.overview_battery, batteryBand ? View.VISIBLE : View.GONE);
+      if (batteryBand) {
+        views.setTextViewText(R.id.overview_level, Language.text(c, R.string.battery_level) + " · " + r.percent + "%");
+        views.setTextColor(R.id.overview_level, colors.secondary);
+        views.setProgressBar(R.id.overview_progress, 100, r.percent, false);
+        views.setColorStateList(R.id.overview_progress, "setProgressTintList", ColorStateList.valueOf(colors.secondary));
+        views.setColorStateList(R.id.overview_progress, "setProgressBackgroundTintList", ColorStateList.valueOf(colors.outline));
+      }
+    }
+    boolean eta = r.message.isEmpty() && r.charging && !r.time.isEmpty();
+    int usable = height - (eta ? 18 : 0) - (batteryBand ? 32 : 0);
+    float column = (width - edge * 2) / (stacked ? 1f : 2f) - 3;
+    float metricSize = Math.min(42, (usable / (stacked ? 2f : 1f) - 15) / (1.3f * c.getResources().getConfiguration().fontScale));
+    number(c, views, R.id.range_electric, chargeLevel ? r.percent + "%" : r.electric, metricSize, column,
+        r.electricAlarm ? colors.warning : colors.primary);
+    number(c, views, R.id.range_fuel, r.fuel, metricSize, column, r.fuelAlarm ? colors.warning : colors.primary);
+    views.setViewVisibility(R.id.overview_eta, eta ? View.VISIBLE : View.GONE);
+    views.setTextViewText(R.id.overview_eta, r.time);
+    views.setTextColor(R.id.overview_eta, colors.secondary);
     return views;
   }
 
@@ -242,13 +334,17 @@ final class VariantAppearance {
       if (paint.measureText(value) <= available * density) break;
       size -= .5f;
     }
+    views.setTextViewText(id, withUnit(value));
+    views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, Math.max(11, size));
+    views.setTextColor(id, color);
+  }
+
+  static SpannableString withUnit(String value) {
     SpannableString text = new SpannableString(value);
     int unit = value.indexOf(' ');
     if (unit < 0) unit = value.indexOf('\u00a0');
     if (unit >= 0) text.setSpan(new RelativeSizeSpan(.65f), unit, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-    views.setTextViewText(id, text);
-    views.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, Math.max(11, size));
-    views.setTextColor(id, color);
+    return text;
   }
 
   private static int dp(Context c, float value) { return Math.round(value * c.getResources().getDisplayMetrics().density); }

@@ -202,4 +202,9 @@
     <string name="electric_tiny">EV</string>
     <string name="fuel_short">Fuel</string>
     <string name="metric_refresh_hint">Tap the widget to request updated readings from Li Auto. Appearance can be changed here or in the launcher widget editor.</string>
+  <string name="no_new_readings">No new data</string>
+  <string name="no_new_readings_age">No new data for %1$s</string>
+  <string name="preview_electric_distance">186 km</string>
+  <string name="preview_fuel_distance">742 km</string>
+  <string name="next_actions">Next controls. Page %1$d of %2$d.</string>
 </resources>

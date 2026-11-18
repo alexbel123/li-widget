@@ -10,5 +10,6 @@
    <TextView android:id="@+id/range_fuel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textSize="24sp" android:textColor="@color/widget_initial_primary" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" android:fontFamily="sans-serif-medium" />
   </LinearLayout>
  </LinearLayout>
+ <TextView android:id="@+id/metric_notice" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:paddingHorizontal="4dp" android:paddingVertical="2dp" android:maxLines="2" android:ellipsize="end" android:includeFontPadding="false" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:visibility="gone" />
  <FrameLayout android:id="@+id/metric_refresh_slot" android:layout_width="match_parent" android:layout_height="match_parent" android:importantForAccessibility="no" />
 </FrameLayout>

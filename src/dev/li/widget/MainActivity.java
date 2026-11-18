@@ -237,6 +237,8 @@ public class MainActivity extends Activity {
   }
 
   private void showTab() {
+    if (tab == 2 && !style.format.hasActions()) tab = 1;
+    tabs[2].setVisibility(style.format.hasActions() ? View.VISIBLE : View.GONE);
     for (int n = 0; n < tabs.length; n++) ui.segment(tabs[n], n == tab);
     updatePreviewTitle();
     live.setVisibility(tab == 2 ? View.GONE : View.VISIBLE);
@@ -532,16 +534,20 @@ public class MainActivity extends Activity {
   private void buttonSettings() {
     List<View> actions = new ArrayList<>(4);
     try {
-      android.content.res.Resources source = getPackageManager().getResourcesForApplication(State.SOURCE);
-      View car = live.findViewById(source.getIdentifier("ll_widget_car", "id", State.SOURCE));
-      if (car != null && car.getVisibility() == View.VISIBLE) {
+      Context source = createPackageContext(State.SOURCE, 0);
+      android.content.res.Resources resources = source.getResources();
+      View snapshot = BridgeService.sourceForEditor();
+      View car = snapshot == null ? null : snapshot.findViewById(resources.getIdentifier("ll_widget_car", "id", State.SOURCE));
+      if (Appearance.visible(car)) {
         for (int i = 1; i <= 4; i++) {
-          TextView original = live.findViewById(source.getIdentifier("control_button_text" + i, "id", State.SOURCE));
-          if (original == null || original.length() == 0) continue;
-          ImageView image = live.findViewById(source.getIdentifier("control_button_icon" + i, "id", State.SOURCE));
+          String key = "control_button_text" + i;
+          TextView original = car.findViewById(resources.getIdentifier(key, "id", State.SOURCE));
+          if (!Appearance.visible(original) || original.length() == 0) continue;
+          String label = Translations.translate(this, source, key, original.getText().toString());
+          ImageView image = car.findViewById(resources.getIdentifier("control_button_icon" + i, "id", State.SOURCE));
           Drawable glyph = image == null ? null : image.getDrawable();
           Drawable.ConstantState state = glyph == null ? null : glyph.getConstantState();
-          actions.add(actionCell(original.getText().toString(), state == null ? null : state.newDrawable().mutate()));
+          actions.add(actionCell(label, state == null ? null : state.newDrawable().mutate()));
         }
       }
     } catch (PackageManager.NameNotFoundException unavailable) {

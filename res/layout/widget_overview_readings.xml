@@ -1,0 +1,18 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/overview_readings"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
+  <LinearLayout android:id="@+id/overview_columns" android:layout_width="match_parent" android:layout_height="0dp"
+      android:layout_weight="1" android:orientation="horizontal" android:baselineAligned="false">
+    <include layout="@layout/widget_electric_reading"/>
+    <include layout="@layout/widget_fuel_reading"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/overview_battery" android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:layout_marginBottom="8dp" android:orientation="vertical" android:visibility="gone">
+    <TextView android:id="@+id/overview_level" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textSize="11sp" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end"/>
+    <ProgressBar android:id="@+id/overview_progress" style="@android:style/Widget.Material.ProgressBar.Horizontal"
+        android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="3dp" android:max="100"
+        android:indeterminate="false" android:importantForAccessibility="no"/>
+  </LinearLayout>
+  <TextView android:id="@+id/overview_eta" android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:textSize="12sp" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" android:visibility="gone"/>
+</LinearLayout>

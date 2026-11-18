@@ -11,11 +11,11 @@
 
 **Неофициальный компаньон для штатного виджета Li Auto.** Настраивает оформление и переводит известные подписи, сохраняя оригинальные кнопки и их обработчики. Оригинальное приложение Li Auto должно быть установлено отдельно.
 
-## Скачать 1.0 · сборка 20
+## Скачать 1.0 · сборка 21
 
-**[Установить APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Скачать ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip)** · [Все файлы релиза](https://github.com/alexbel123/li-widget/releases/latest)
+**[Скачать APK](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.apk)** · **[Исходный код в ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0-source.zip)** · [APK с инструкцией в ZIP](https://github.com/alexbel123/li-widget/releases/latest/download/Li-Widget-1.0.zip) · [Страница релиза](https://github.com/alexbel123/li-widget/releases/latest)
 
-ZIP содержит тот же APK, краткую инструкцию и его контрольную сумму. Исходники доступны в репозитории и в архиве **Source code** на странице релиза. `SHA256SUMS.txt` позволяет проверить загруженные файлы.
+APK можно установить поверх сборки 20. Архив исходников содержит код этой версии, инструменты сборки и лицензию MIT. [Контрольные суммы SHA-256](https://github.com/alexbel123/li-widget/releases/latest/download/SHA256SUMS.txt)
 
 <table>
 <tr><th>Формат</th><th>Светлая тема</th><th>Тёмная тема</th></tr>

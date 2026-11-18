@@ -1,0 +1,10 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/overview_readings"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical">
+  <LinearLayout android:id="@+id/overview_columns" android:layout_width="match_parent" android:layout_height="0dp"
+      android:layout_weight="1" android:orientation="vertical" android:baselineAligned="false">
+    <include layout="@layout/widget_electric_reading" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+    <include layout="@layout/widget_fuel_reading" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+  </LinearLayout>
+  <TextView android:id="@+id/overview_eta" android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:textSize="12sp" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" android:visibility="gone"/>
+</LinearLayout>

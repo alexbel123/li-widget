@@ -321,9 +321,13 @@ final class Appearance {
 
   static RemoteViews render(Context c, RemoteViews original, View view, WidgetStyle style,
       int width, int height, Freshness fresh, boolean newReading, boolean chargeChanged) throws Exception {
-    if (!style.format.standard())
-      return VariantAppearance.render(c, original, view, style, width, height, fresh, chargeChanged);
-    return new Appearance(c, original, view, style, width, height, fresh).build(newReading, chargeChanged);
+    WidgetFormat display = style.format.presentation(style, width, height, c.getResources().getConfiguration().fontScale);
+    if (!display.standard())
+      return VariantAppearance.render(c, original, view, style, display, width, height, fresh, chargeChanged);
+    Appearance a = new Appearance(c, original, view, style, width, height, fresh);
+    if (display == WidgetFormat.LARGE && visible(view.findViewById(a.id("ll_widget_car"))))
+      return a.overview(original, newReading, chargeChanged);
+    return a.build(newReading, chargeChanged);
   }
 
   /** Retain the source PendingIntents and states; only restyle a selected row of its controls. */
@@ -437,7 +441,7 @@ final class Appearance {
     boolean stale = fresh.stale(now, style.staleMinutes);
     ChargeReading charge = ChargeReading.read(local, snapshot);
     boolean charging = charge != null && charge.charging;
-    boolean showStatus = hasCar && (style.showTime || hasMessage || charging);
+    boolean showStatus = hasCar && (style.showTime || hasMessage || charging || stale);
     int side = actionInset(widthDp);
     float labelWidth = (widthDp - 2 * side - 3) / 4f - 6;
     int lines = labelLines(labelWidth);
@@ -521,6 +525,8 @@ final class Appearance {
       if (total <= px(widthDp - 36) || metric <= 16) break;
       metric -= .5f;
     }
+    for (String field : new String[] {"widget_current_mileage", "widget_total_mileage"})
+      if (id(field) != 0) rv.setTextViewText(id(field), VariantAppearance.withUnit(texts.getOrDefault(field, "")));
     size("widget_current_mileage", metric);
     size("widget_total_mileage", metric);
     size("widget_battery_percent", 11);
@@ -616,6 +622,8 @@ final class Appearance {
       width("tv_widget_login", Math.max(1, widthDp - 32));
     }
     RemoteViews shell = new RemoteViews(local.getPackageName(), R.layout.widget_shell);
+    shell.setViewVisibility(R.id.overview_metrics, View.GONE);
+    shell.setViewVisibility(R.id.overview_actions, View.GONE);
     boolean motion = WidgetMotion.enabled(style);
     boolean movingAvatar = hasCar && !compact && !dense && addAvatar(shell, top, header,
         motion && style.motion.equals("avatar"));
@@ -637,18 +645,27 @@ final class Appearance {
       shell.setViewLayoutMargin(R.id.compact_header_slot, RemoteViews.MARGIN_TOP, top, TypedValue.COMPLEX_UNIT_DIP);
       shell.addView(R.id.compact_header_slot, compactTitle);
     }
-    boolean footerVisible = showStatus && footer > 0;
+    setStatus(shell, showStatus && footer > 0, footer, dense, hasCar, message, charging,
+        newReading, chargeChanged, movingAvatar);
+    return shell;
+  }
+
+  private void setStatus(RemoteViews shell, boolean footerVisible, int footer, boolean dense, boolean hasCar,
+      String message, boolean charging, boolean newReading, boolean chargeChanged, boolean movingAvatar) {
+    long now = System.currentTimeMillis();
+    boolean stale = fresh.stale(now, style.staleMinutes);
+    boolean hasMessage = !message.trim().isEmpty();
+    boolean motion = WidgetMotion.enabled(style);
+    charging = charging && !hasMessage;
     shell.setViewVisibility(R.id.status_row, footerVisible ? View.VISIBLE : View.GONE);
     shell.setViewLayoutHeight(R.id.status_row, footer, TypedValue.COMPLEX_UNIT_DIP);
-    if (dense) {
-      shell.setTextViewTextSize(R.id.status_text, TypedValue.COMPLEX_UNIT_SP, 10);
-      shell.setTextViewTextSize(R.id.status_dot, TypedValue.COMPLEX_UNIT_SP, 14);
-    }
+    shell.setTextViewTextSize(R.id.status_text, TypedValue.COMPLEX_UNIT_SP, dense ? 10 : 11);
+    shell.setTextViewTextSize(R.id.status_dot, TypedValue.COMPLEX_UNIT_SP, dense ? 14 : 17);
     int stateColor = hasMessage || stale ? alarm : secondary;
     String status = hasMessage ? message : fresh.text(local, now, style.staleMinutes);
     if (footerVisible && charging) {
       String chargingLabel = Language.text(local, R.string.widget_charging);
-      status = style.showTime ? chargingLabel + " · " + status : chargingLabel;
+      status = style.showTime || stale ? chargingLabel + " · " + status : chargingLabel;
       int boltColor = colors.chargeAccent;
       shell.setInt(R.id.charge_bolt, "setColorFilter", stale ? secondary : boltColor);
     }
@@ -663,6 +680,65 @@ final class Appearance {
       if (movingAvatar) shell.setDisplayedChild(R.id.avatar_motion, 0);
       else if (footerVisible) shell.setDisplayedChild(R.id.status_motion, 0);
     }
+  }
+
+  private RemoteViews overview(RemoteViews original, boolean newReading, boolean chargeChanged) throws Exception {
+    translate();
+    String message = visible(snapshot.findViewById(id("widget_text"))) ? texts.getOrDefault("widget_text", "") : "";
+    ChargeReading charge = ChargeReading.read(local, snapshot);
+    boolean charging = charge != null && charge.charging;
+    boolean status = style.showTime || !message.isEmpty() || charging || fresh.stale(System.currentTimeMillis(), style.staleMinutes);
+    int footer = status ? (message.isEmpty() ? 23 : 32) : 0;
+    WidgetFormat.OverviewSize size = new WidgetFormat.OverviewSize(widthDp, heightDp, footer);
+    int header = size.header, inset = size.inset, hero = size.hero, actions = size.actions;
+
+    RemoteViews shell = new RemoteViews(local.getPackageName(), R.layout.widget_shell);
+    shell.setInt(R.id.shell, "setBackgroundResource", colors.surfaceRes);
+    shell.setViewLayoutHeight(R.id.shell, heightDp, TypedValue.COMPLEX_UNIT_DIP);
+    shell.setViewVisibility(R.id.empty, View.GONE);
+    shell.setViewVisibility(R.id.filled, View.VISIBLE);
+    shell.setViewVisibility(R.id.compact_header_slot, View.GONE);
+    // Keep header handlers in this clone. Each visible control row retains its own source handlers.
+    for (String field : new String[] {"widget_content", "widget_buttons", "card_theme_background_2",
+        "widget_update_time", "widget_iv_back", "re_widget_login"}) hidden(field);
+    integer("ll_widget_car", "setBackgroundResource", 0);
+    padding("ll_widget_car", 0, 0, 0, 0);
+    for (String field : new String[] {"re_widget_content", "ll_widget_car", "widget_header"}) height(field, header);
+    margin("widget_header", RemoteViews.MARGIN_TOP, 0);
+    margin("widget_header", RemoteViews.MARGIN_LEFT, widthDp < 230 ? 8 : 16);
+    margin("widget_header", RemoteViews.MARGIN_RIGHT, 4);
+    for (String field : new String[] {"iv_widget_refresh", "widget_iv_setting"}) {
+      width(field, 48); height(field, 48);
+      padding(field, 13, 13, 13, 13); tint(field);
+    }
+    rv.setContentDescription(id("iv_widget_refresh"), Language.text(local, R.string.desc_refresh));
+    rv.setContentDescription(id("widget_iv_setting"), Language.text(local, R.string.desc_settings));
+    if (widthDp < 225) hidden("widget_iv_setting");
+    hidden("card_theme_background_1");
+    size("widget_vehicle_name", widthDp < 230 ? 16 : detailedNameSize(style));
+    integer("widget_vehicle_name", "setMaxLines", 1);
+    textColor("widget_vehicle_name", primary);
+    width("widget_logo", 24); height("widget_logo", 12); tint("widget_logo");
+    boolean moving = widthDp >= 210 && addAvatar(shell, 0, header,
+        WidgetMotion.enabled(style) && style.motion.equals("avatar"));
+    if (widthDp < 210) hidden("widget_logo");
+    shell.setViewVisibility(R.id.avatar_motion, moving ? View.VISIBLE : View.GONE);
+    shell.setViewLayoutHeight(R.id.source_slot, header, TypedValue.COMPLEX_UNIT_DIP);
+    shell.removeAllViews(R.id.source_slot);
+    shell.addView(R.id.source_slot, rv);
+
+    shell.setViewVisibility(R.id.overview_metrics, View.VISIBLE);
+    shell.setViewLayoutHeight(R.id.overview_metrics, hero, TypedValue.COMPLEX_UNIT_DIP);
+    shell.removeAllViews(R.id.overview_metrics);
+    shell.addView(R.id.overview_metrics, VariantAppearance.overviewMetrics(local, source, snapshot, style, widthDp, hero));
+    int panelWidth = widthDp - 2 * inset;
+    RemoteViews panel = VariantAppearance.actionPanel(local, original, snapshot, style, panelWidth, actions, "", size.rows, true);
+    shell.setViewVisibility(R.id.overview_actions, View.VISIBLE);
+    shell.setViewLayoutHeight(R.id.overview_actions, actions, TypedValue.COMPLEX_UNIT_DIP);
+    shell.setViewPadding(R.id.overview_actions, px(inset), 0, px(inset), 0);
+    shell.removeAllViews(R.id.overview_actions);
+    shell.addView(R.id.overview_actions, panel);
+    setStatus(shell, status, footer, widthDp < 230, true, message, charging, newReading, chargeChanged, moving);
     return shell;
   }
 
@@ -725,7 +801,7 @@ final class Appearance {
       boolean shown = visible(snapshot.findViewById(id(fields[i])));
       header.setViewVisibility(cells[i], shown ? View.VISIBLE : View.GONE);
       String value = texts.getOrDefault(fields[i], "");
-      header.setTextViewText(numbers[i], value);
+      header.setTextViewText(numbers[i], VariantAppearance.withUnit(value));
       header.setTextViewTextSize(numbers[i], TypedValue.COMPLEX_UNIT_SP, fitLabel(value, 18, available));
       header.setTextColor(numbers[i], metricColor(fields[i]));
       header.setInt(icons[i], "setColorFilter", icon);

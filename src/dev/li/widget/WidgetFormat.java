@@ -29,6 +29,46 @@ enum WidgetFormat {
 
   boolean standard() { return this == FULL || this == LARGE; }
   boolean favorites() { return this == FAVORITES || this == FAVORITES_GRID; }
+  boolean hasActions() { return standard() || favorites(); }
+
+  WidgetFormat presentation(WidgetStyle style, int width, int height, float fontScale) {
+    if (!standard()) return this;
+    int boardWidth = Math.round(238 * Math.min(1.25f, Math.max(1f, fontScale)));
+    if (height < 104) return width >= boardWidth ? FAVORITES : MINIMAL;
+    int gridMinimum = 48 + 97 + 8 + 32 + Math.round(42 * fontScale);
+    if (width < boardWidth) return height >= gridMinimum ? LARGE : RANGE;
+    boolean tallGrid = actionRows(width, height) == 2;
+    if (tallGrid && height < gridMinimum) return FULL;
+    int expanded = (style.layout.equals("detailed") ? 180 : 230) + Math.round(24 * Math.max(0, fontScale - 1));
+    if (height >= expanded && (tallGrid || !style.layout.equals("compact"))) return LARGE;
+    return FULL;
+  }
+
+  static int actionRows(int width, int height) {
+    if (height < 97) return 1;
+    return width < 230 || height > width * (width < 344 ? .82f : 1f) ? 2 : 1;
+  }
+
+  static final class OverviewSize {
+    final int inset, rows, header, footer, actions, hero;
+    OverviewSize(int width, int height, int statusHeight) {
+      rows = actionRows(width, height);
+      inset = width < 114 ? 0 : width < 145 ? 4 : Appearance.actionInset(width);
+      header = height >= 244 ? Appearance.DETAILED_HEADER_DP : 48;
+      footer = statusHeight;
+      int available = height - header - footer - 8;
+      int rowHeight = Math.min(96, Math.max(48, (available - 46 - (rows - 1)) / rows));
+      actions = rows * rowHeight + rows - 1;
+      hero = Math.max(1, available - actions);
+    }
+  }
+
+  static int firstRowCount(int width, int rows) {
+    if (rows == 2) return 2;
+    if (width >= 203) return 4;
+    // One 48 dp target advances to the remaining commands in the shortest frames.
+    return Math.max(1, (width - 8 - 48) / 49);
+  }
   ComponentName component(Context context) { return new ComponentName(context, provider); }
 
   static WidgetFormat parse(String value) {

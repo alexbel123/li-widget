@@ -6,13 +6,17 @@ Implemented in version 1.0, build17. Each row is a separate Android AppWidget pr
 
 | Формат / Format | Ячейки / Target cells | Минимум / Minimum dp | Содержимое / Contents |
 |---|---|---|---|
-| Универсальный / Overview | 4×2 | 250×110 | Имя, запас хода и четыре кнопки; адаптивная компоновка / Name, range and four controls |
-| Большой / Large | 4×3 | 250×180 | Увеличенная шапка, аватар и четыре кнопки / Larger header, avatar and four controls |
+| Универсальный / Overview | 4×2 | 110×48 | Запас хода, полоса команд или полная панель по размеру рамки / Range, action strip or dashboard |
+| Большой / Large | 4×3 | 110×48 | Расширенная панель с аватаром при доступном месте / Expanded dashboard with room for an avatar |
 | Минимальный / Minimal | 2×1 | 110×48 | Электрический и бензиновый запас хода / Electric and fuel range |
 | Запас хода / Range | 2×2 | 110×110 | Два показателя запаса хода, батарея и обновление / Two range readings, battery and freshness |
-| Избранное / Favorites | 4×1 | 250×48 | Четыре кнопки в строку / Four controls in a row |
-| Избранное / Favorites | 2×2 | 110×110 | Четыре кнопки сеткой / Four controls in a grid |
+| Избранное / Favorites | 4×1 | 110×48 | Ряд, сетка или страницы по размеру рамки / Row, grid or pages to fit |
+| Избранное / Favorites | 2×2 | 110×48 | Ряд, сетка или страницы по размеру рамки / Row, grid or pages to fit |
 | Зарядка / Charging | 4×2 | 250×110 | Процент батареи, статус и исходное время зарядки / Battery percentage, state and original countdown |
+
+При изменении рамки универсальный виджет и большой сохраняют оформление и выбор команд. Пример для Pixel Launcher: 2×1 показывает два запаса хода, 4×1 — команды, 4×3 — аватар, показатели и полосу команд, 3×4 и 4×4 — кнопки в два ряда. Фактическая компоновка зависит от свободной ширины и высоты в dp, а также от масштаба шрифта. В обоих «Избранных» тесная однострочная рамка получает переключатель страниц. Он листает выбранные в Li Auto команды по порядку.
+
+Overview and Large retain their settings when resized. Short, narrow frames prioritize range. A short, wide frame fits the action strip. Taller frames show the vehicle header, readings and either one or two rows of controls. Both Favorites providers offer a page switcher when all four touch targets no longer fit.
 
 ## Добавление / Adding
 

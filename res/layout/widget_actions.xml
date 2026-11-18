@@ -1,5 +1,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/variant_root" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="6dp" android:background="@drawable/surface_system" android:clipToOutline="true">
-<FrameLayout android:id="@+id/actions_first" android:layout_width="match_parent" android:layout_height="64dp"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+ <FrameLayout android:id="@+id/actions_first" android:layout_width="0dp" android:layout_weight="1" android:layout_height="64dp"/>
+ <TextView android:id="@+id/actions_next" android:layout_width="48dp" android:layout_height="match_parent" android:gravity="center"
+     android:fontFamily="sans-serif-medium" android:textSize="12sp" android:maxLines="1" android:background="?android:attr/selectableItemBackground"
+     android:includeFontPadding="false" android:visibility="gone"/>
+</LinearLayout>
 <TextView android:id="@+id/actions_divider" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginLeft="12dp" android:layout_marginRight="12dp" android:importantForAccessibility="no" android:visibility="gone"/>
 <FrameLayout android:id="@+id/actions_second" android:layout_width="match_parent" android:layout_height="64dp" android:visibility="gone"/>
 <TextView android:id="@+id/variant_status" android:layout_width="match_parent" android:layout_height="16dp" android:textSize="10sp" android:textColor="@color/widget_initial_secondary" android:maxLines="1" android:ellipsize="end" android:gravity="center_vertical" android:includeFontPadding="false" android:visibility="gone"/>

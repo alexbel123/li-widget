@@ -11,6 +11,8 @@
         android:scaleType="fitCenter"/>
    </ViewFlipper>
   </FrameLayout>
+  <FrameLayout android:id="@+id/overview_metrics" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone"/>
+  <FrameLayout android:id="@+id/overview_actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone"/>
   <LinearLayout android:id="@+id/status_row" android:orientation="horizontal" android:gravity="center_vertical" android:paddingLeft="18dp" android:paddingRight="18dp" android:layout_width="match_parent" android:layout_height="24dp">
    <TextView android:id="@+id/status_dot" android:text="•" android:textSize="17sp" android:includeFontPadding="false" android:importantForAccessibility="no" android:layout_width="16dp" android:layout_height="wrap_content"/>
    <ViewFlipper android:id="@+id/charge_motion" android:layout_width="16dp" android:layout_height="16dp"
